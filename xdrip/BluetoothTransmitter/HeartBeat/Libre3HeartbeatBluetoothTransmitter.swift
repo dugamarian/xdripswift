@@ -68,8 +68,11 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
             UserDefaults.standard.timeStampOfLastHeartBeat = timeStampOfLastHeartBeat
             
             // wait for a second to allow the official app to upload to LibreView before triggering the heartbeat announcement to the delegate
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.bluetoothTransmitterDelegate?.heartBeat()
+            Task { 
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)@MainActor
+                
+                    self.bluetoothTransmitterDelegate?.heartBeat()
+            
             }
         }
 
@@ -90,8 +93,11 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
             UserDefaults.standard.timeStampOfLastHeartBeat = timeStampOfLastHeartBeat
             
             // wait for a second to allow the official app to upload to LibreView before triggering the heartbeat announcement to the delegate
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.bluetoothTransmitterDelegate?.heartBeat()
+            Task { 
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)@MainActor
+                
+                    self.bluetoothTransmitterDelegate?.heartBeat()
+            
             }
         }
         
