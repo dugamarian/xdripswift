@@ -4,101 +4,75 @@ import EventKit
 
 class CalendarManager: NSObject {
     
-    // MARK: - private properties
-    
-    /// CoreDataManager to use
-    private let coreDataManager:CoreDataManager
-
-    /// BgReadingsAccessor instance
-    private let bgReadingsAccessor:BgReadingsAccessor
-
-    /// for logging
-    private var log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryCalendarManager)
-    
-    /// to create and delete events
+    private let coreDataManager: CoreDataManager
+    private let bgReadingsAccessor: BgReadingsAccessor
+    private let logger = Logger(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryCalendarManager)
     private let eventStore = EKEventStore()
-    
-    /// timestamp of last reading for which calendar event is created, initially set to 1 jan 1970
     private var timeStampLastProcessedReading = Date(timeIntervalSince1970: 0.0)
     
-    // MARK: - initializer
-    
     init(coreDataManager: CoreDataManager) {
-        
         self.coreDataManager = coreDataManager
         self.bgReadingsAccessor = BgReadingsAccessor(coreDataManager: coreDataManager)
-        
     }
     
-    // MARK: - public functions
-    
-    /// process new readings
-    ///     - lastConnectionStatusChangeTimeStamp : when was the last transmitter dis/reconnect - if nil then  1 1 1970 is used
     public func processNewReading(lastConnectionStatusChangeTimeStamp: Date?) {
-        
-        // check if createCalenderEvent is enabled in the settings and if so create calender event
-        if UserDefaults.standard.createCalendarEvent  {
+        if UserDefaults.standard.createCalendarEvent {
             createCalendarEvent(lastConnectionStatusChangeTimeStamp: lastConnectionStatusChangeTimeStamp)
         }
-        
     }
     
-    // MARK: - private functions
+    public func setCalendarDelivery(enabled: Bool) {
+        UserDefaults.standard.createCalendarEvent = enabled
+        if !enabled {
+            if EKEventStore.authorizationStatus(for: .event) == .authorized {
+                if let calendar = getCalendar() {
+                    deleteAllEvents(in: calendar)
+                } else {
+                    logger.error("Nu a fost găsit niciun calendar.")
+                }
+            } else {
+                logger.info("Accesul la calendar nu este autorizat.")
+            }
+        } else {
+            requestCalendarAccessIfNeeded()
+        }
+    }
     
     private func createCalendarEvent(lastConnectionStatusChangeTimeStamp: Date?) {
-        
-        // check that access to calendar is authorized by the user
         guard EKEventStore.authorizationStatus(for: .event) == .authorized else {
-            trace("in createCalendarEvent, createCalendarEvent is enabled but access to calendar is not authorized, setting UserDefaults.standard.createCalendarEvent to false", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            logger.info("Accesul la calendar nu este autorizat. Dezactivez livrarea către calendar.")
+            UserDefaults.standard.createCalendarEvent = false
             return
         }
         
-        // check that there is a calendar (should be)
         guard let calendar = getCalendar() else {
-            trace("in createCalendarEvent, there's no calendar", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            logger.error("Nu a fost găsit niciun calendar.")
             return
         }
         
-        // if an interval is defined, and if time since last created event is less than interval, then don't create a new event
-        // substract 10 seconds, because user will probably select a multiple of 5, and also readings usually arrive every 5 minutes
-        // example user selects 10 minutes interval, next reading will arrive in exactly 10 minutes, time interval to be checked will be 590 seconds
         if Int(Date().timeIntervalSince(timeStampLastProcessedReading)) < (UserDefaults.standard.calendarInterval * 60 - 10) {
-            
-            trace("in createCalendarEvent, less than %{public}@ minutes since last event, will not create a new event", log: log, category: ConstantsLog.categoryCalendarManager, type: .info, UserDefaults.standard.calendarInterval.description)
-            
+            logger.info("Mai puțin de \(UserDefaults.standard.calendarInterval) minute de la ultimul eveniment, nu se va crea un nou eveniment.")
             return
-            
         }
         
-        // get 2 last Readings, with a calculatedValue
         let lastReading = bgReadingsAccessor.get2LatestBgReadings(minimumTimeIntervalInMinutes: 4.0)
         
-        // there should be at least one reading
         guard lastReading.count > 0 else {
-            trace("in createCalendarEvent, there are no new readings to process", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            logger.info("Nu există citiri noi de procesat.")
             return
         }
         
-        // latest reading should be less than 5 minutes old
         guard abs(lastReading[0].timeStamp.timeIntervalSinceNow) < 5 * 60 else {
-            trace("in createCalendarEvent, the latest reading is older than 5 minutes", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
-            return        }
+            logger.info("Ultima citire este mai veche de 5 minute.")
+            return
+        }
         
-        // time to delete any existing events
         deleteAllEvents(in: calendar)
         
-        // compose the event title
-        // start with the reading in correct unit
-        var title = lastReading[0].unitizedString(unitIsMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl).description
+        var title = lastReading[0].unitizedString(unitIsMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl)
         
-        // add the visual indicator to the title to show what range the current
-        // reading is in
-        if (UserDefaults.standard.displayVisualIndicatorInCalendarEvent){
-            
+        if UserDefaults.standard.displayVisualIndicatorInCalendarEvent {
             var visualIndicator = ""
-        
-            // get the current range of the last reading then
-            // configure the indicator based on the relevant range
             switch lastReading[0].bgRangeDescription() {
             case .inRange:
                 visualIndicator = ConstantsCalendar.visualIndicatorInRange
@@ -107,29 +81,23 @@ class CalendarManager: NSObject {
             case .urgent:
                 visualIndicator = ConstantsCalendar.visualIndicatorUrgent
             }
-            
-            // pre-append the indicator to the title
             title = visualIndicator + " " + title
         }
         
-        // add trend if needed and available
-        if (!lastReading[0].hideSlope && UserDefaults.standard.displayTrendInCalendarEvent) {
+        if !lastReading[0].hideSlope && UserDefaults.standard.displayTrendInCalendarEvent {
             title = title + " " + lastReading[0].slopeArrow()
         }
         
-        // add delta if needed
         if UserDefaults.standard.displayDeltaInCalendarEvent && lastReading.count > 1 {
-            
-            title = title + " " + lastReading[0].unitizedDeltaString(previousBgReading: lastReading[1], showUnit: UserDefaults.standard.displayUnitInCalendarEvent, highGranularity: true, mgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl)
-            
+            title = title + " " + lastReading[0].unitizedDeltaString(
+                previousBgReading: lastReading[1],
+                showUnit: UserDefaults.standard.displayUnitInCalendarEvent,
+                highGranularity: true,
+                mgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl)
         } else if UserDefaults.standard.displayUnitInCalendarEvent {
-            
-            // add unit if needed
             title = title + " " + (UserDefaults.standard.bloodGlucoseUnitIsMgDl ? Texts_Common.mgdl : Texts_Common.mmol)
-            
         }
         
-        // create an event now
         let event = EKEvent(eventStore: eventStore)
         event.title = title
         event.notes = ConstantsCalendar.textInCreatedEvent
@@ -137,65 +105,65 @@ class CalendarManager: NSObject {
         event.endDate = Date(timeIntervalSinceNow: 60 * 10)
         event.calendar = calendar
         
-        do{
-            
+        do {
             try eventStore.save(event, span: .thisEvent)
-            
             timeStampLastProcessedReading = lastReading[0].timeStamp
-            
         } catch let error {
-            
-            trace("in createCalendarEvent, error while saving : %{public}@", log: log, category: ConstantsLog.categoryCalendarManager, type: .error, error.localizedDescription)
-            
+            logger.error("Eroare la salvarea evenimentului: \(error.localizedDescription)")
         }
-
     }
     
-    /// - gets all calendars on the device, if one of them has a title that matches the name stored in  UserDefaults.standard.calenderId, then it returns that calendar.
-    /// - else returns the default calendar and sets the value in the UserDefaults to that default value
-    /// - also if currently there's no value in the UserDefaults, then value will be assigned here to UserDefaults.standard.calenderId
-    /// - nil as return value should normally not happen, because there should always be at least one calendar on the device
     private func getCalendar() -> EKCalendar? {
-        
-        // get calendar title stored in the settings and compare to list
         if let calendarIdInUserDefaults = UserDefaults.standard.calenderId {
-            
-            // get all calendars, if there's one having the same title return that one
             for calendar in eventStore.calendars(for: .event) {
-                
                 if calendar.title == calendarIdInUserDefaults {
                     return calendar
                 }
             }
-            
         }
         
-        // so there's no value in UserDefaults.standard.calenderId or there isn't a calendar that has a title as stored in UserDefaults.standard.calenderId
-        // set now UserDefaults.standard.calenderId to default calendar and return that one
-        UserDefaults.standard.calenderId = eventStore.defaultCalendarForNewEvents?.title
-        
-        return eventStore.defaultCalendarForNewEvents
-
+        if let defaultCalendar = eventStore.defaultCalendarForNewEvents {
+            UserDefaults.standard.calenderId = defaultCalendar.title
+            return defaultCalendar
+        } else {
+            logger.error("Nu există un calendar implicit pentru evenimente noi.")
+            return nil
+        }
     }
     
-    // deletes all xdrip events in the calendar, for the last 24 hours
-    private func deleteAllEvents(in calendar:EKCalendar) {
-        
-        let predicate = eventStore.predicateForEvents(withStart: Date(timeIntervalSinceNow: -24*3600), end: Date(), calendars: [calendar])
+    private func deleteAllEvents(in calendar: EKCalendar) {
+        let predicate = eventStore.predicateForEvents(withStart: Date(timeIntervalSinceNow: -24 * 3600), end: Date(), calendars: [calendar])
         
         let events = eventStore.events(matching: predicate)
         
         for event in events {
-            if let notes = event.notes {
-                if notes.contains(find: ConstantsCalendar.textInCreatedEvent) {
-                    do{
-                        try eventStore.remove(event, span: .thisEvent)
-                    } catch let error {
-                        trace("in deleteAllEvents, error while removing : %{public}@", log: log, category: ConstantsLog.categoryCalendarManager, type: .error, error.localizedDescription)
-                    }
+            if let notes = event.notes, notes.contains(ConstantsCalendar.textInCreatedEvent) {
+                do {
+                    try eventStore.remove(event, span: .thisEvent)
+                } catch let error {
+                    logger.error("Eroare la ștergerea evenimentului: \(error.localizedDescription)")
                 }
             }
         }
     }
     
+    private func requestCalendarAccessIfNeeded() {
+        let status = EKEventStore.authorizationStatus(for: .event)
+        switch status {
+        case .notDetermined:
+            eventStore.requestAccess(to: .event) { granted, error in
+                if granted {
+                    self.logger.info("Accesul to calendar was autorised.")
+                } else {
+                    self.logger.error("Acces to calendar was refused.")
+                }
+            }
+        case .denied, .restricted:
+            logger.error("Acces to calendar was refused.")
+        case .authorized:
+            logger.info("Acces to calendar was already autorised.")
+        @unknown default:
+            logger.error("unknown state.")
+        }
+    }
 }
