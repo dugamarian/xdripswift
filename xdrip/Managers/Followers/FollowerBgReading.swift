@@ -14,21 +14,24 @@ struct FollowerBgReading {
     
     var timeStamp:Date
     var sgv:Double
+    var trend:Int?
     
-    init(timeStamp:Date, sgv:Double) {
+    init(timeStamp:Date, sgv:Double, trend:Int?) {
 
         self.timeStamp = timeStamp
         self.sgv = sgv
+        self.trend = trend
         
     }
     
     /// creates an instance with parameter a json array as received from Nightscout
     init?(json:[String:Any]) {
         
-        guard let sgv = json["sgv"] as? Double, let date = json["date"] as? Double else {return nil}
+        guard let sgv = json["sgv"] as? Double, let date = json["date"] as? Double, let trend = json["TrendArrow"] as? Int? else {return nil}
         
         self.sgv = sgv
         self.timeStamp = Date(timeIntervalSince1970: date/1000)
+        self.trend = trend
         
     }
     
@@ -37,7 +40,7 @@ struct FollowerBgReading {
         
         self.sgv = entry.ValueInMgPerDl.value
         self.timeStamp =  entry.FactoryTimestamp // Date(timeIntervalSince1970: date/1000)
-        
+        self.trend = entry.TrendArrow
     }
 
 }

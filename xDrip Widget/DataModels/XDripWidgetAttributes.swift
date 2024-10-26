@@ -136,14 +136,14 @@ struct XDripWidgetAttributes: ActivityAttributes {
 
                             } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.yellow.opacity(0.8), Color.yellow.opacity(0.4)]),
+                                    gradient: Gradient(colors: [Color.brown.opacity(0.8), Color.brown.opacity(0.4)]),
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
 
                             } else {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.4)]),
+                                    gradient: Gradient(colors: [Color.green.opacity(0.8), Color.green.opacity(0.4)]),
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -152,7 +152,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
                     }
 
                     return LinearGradient(
-                        gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.4)]),
+                        gradient: Gradient(colors: [Color.green.opacity(0.8), Color.green.opacity(0.4)]),
                         startPoint: .top,
                         endPoint: .bottom
                     )

@@ -11,6 +11,19 @@ import os
 import AVFoundation
 import AudioToolbox
 
+enum LLUTrendMap: Int {
+    case notComputable = 0
+    case downDown = 1
+    case down = 2
+    case flat = 3
+    case up = 4
+    case upUp = 5
+
+    init?(_ trendArrow: Int) {
+        self.init(rawValue: trendArrow)
+    }
+}
+
 /// instance of this class will do the follower functionality. Just make an instance, it will listen to the settings, do the regular download if needed - it could be deallocated when isMaster setting in Userdefaults changes, but that's not necessary to do
 class LibreLinkUpFollowManager: NSObject {
     
@@ -150,23 +163,57 @@ class LibreLinkUpFollowManager: NSObject {
     /// - returns:
     ///     - BgReading : the new reading, not saved in the coredata
     public func createBgReading(followGlucoseData: FollowerBgReading) -> BgReading {
-        
-        // set the device name in the BG Reading, especially useful for later uploading the Nightscout
+        // Set the device name in the BG Reading
         let deviceName = ConstantsHomeView.applicationName + " (LibreLinkUp)"
-        
-        // create new bgReading
-        let bgReading = BgReading(timeStamp: followGlucoseData.timeStamp, sensor: nil, calibration: nil, rawData: followGlucoseData.sgv, deviceName: deviceName, nsManagedObjectContext: coreDataManager.mainManagedObjectContext)
-        
-        // set calculatedValue
+
+        // Create a new BgReading
+        let bgReading = BgReading(
+            timeStamp: followGlucoseData.timeStamp,
+            sensor: nil,
+            calibration: nil,
+            rawData: followGlucoseData.sgv,
+            deviceName: deviceName,
+            nsManagedObjectContext: coreDataManager.mainManagedObjectContext
+        )
+
+        // Set calculatedValue
         bgReading.calculatedValue = followGlucoseData.sgv
-        
-        // set calculatedValueSlope
-        let (calculatedValueSlope, hideSlope) = findSlope()
-        bgReading.calculatedValueSlope = calculatedValueSlope
-        bgReading.hideSlope = hideSlope
-        
+
+        // Set calculatedValueSlope and hideSlope based on the trend arrow
+        if let trendInt = followGlucoseData.trend, let trend = LLUTrendMap(trendInt) {
+            let (calculatedValueSlope, hideSlope) = calculateSlopeFromTrend(trend)
+            bgReading.calculatedValueSlope = calculatedValueSlope
+            bgReading.hideSlope = hideSlope
+        } else {
+            // If trend is not available, set default values
+            bgReading.calculatedValueSlope = 0
+            bgReading.hideSlope = true
+        }
+
         return bgReading
-        
+    }
+    
+    private func calculateSlopeFromTrend(_ trend: LLUTrendMap) -> (Double, Bool) {
+        var hideSlope = false
+        var calculatedValueSlope: Double = 0.0
+
+        switch trend {
+        case .upUp:
+            calculatedValueSlope = 2.75 / 60000
+        case .up:
+            calculatedValueSlope = 1.25 / 60000
+        case .flat:
+            calculatedValueSlope = 0.0
+        case .down:
+            calculatedValueSlope = -1.25 / 60000
+        case .downDown:
+            calculatedValueSlope = -2.75 / 60000
+        case .notComputable:
+            hideSlope = true
+            calculatedValueSlope = 0.0
+        }
+
+        return (calculatedValueSlope, hideSlope)
     }
     
     // MARK: - private functions
@@ -175,25 +222,7 @@ class LibreLinkUpFollowManager: NSObject {
     ///
     /// updates bgreading
     ///
-    private func findSlope() -> (calculatedValueSlope: Double, hideSlope: Bool) {
-        
-        // init returnvalues
-        var hideSlope = true
-        var calculatedValueSlope = 0.0
-        
-        // get last readings
-        let last2Readings = bgReadingsAccessor.getLatestBgReadings(limit: 3, howOld: 1, forSensor: nil, ignoreRawData: true, ignoreCalculatedValue: false)
-        
-        // if more thant 2 readings, calculate slope and hie
-        if last2Readings.count >= 2 {
-            let (slope, hide) = last2Readings[0].calculateSlope(lastBgReading:last2Readings[1])
-            calculatedValueSlope = slope
-            hideSlope = hide
-        }
-        
-        return (calculatedValueSlope, hideSlope)
-        
-    }
+   
     
     
     /// download recent readings from LibreView, send result to delegate, and schedule new download
@@ -917,4 +946,22 @@ extension LibreLinkUpFollowError: CustomStringConvertible {
         
     }
     
+}
+extension LLUTrendMap {
+    var arrow: String {
+        switch self {
+        case .upUp:
+            return "↑"
+        case .up:
+            return "↗︎"
+        case .flat:
+            return "→"
+        case .down:
+            return "↘︎"
+        case .downDown:
+            return "↓"
+        case .notComputable:
+            return "?"
+        }
+    }
 }
