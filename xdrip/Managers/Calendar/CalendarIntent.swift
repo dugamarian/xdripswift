@@ -1,14 +1,4 @@
-//
-//  CalendarIntent.swift
-//  xdrip
-//
-//  Created by Marian Dugaesescu on 25/10/2024.
-//  Copyright © 2024 Johan Degraeve. All rights reserved.
-//
-
-
 import AppIntents
-import UIKit
 
 @available(iOS 16.0, *)
 struct SetCalendarDeliveryIntent: AppIntent {
@@ -27,18 +17,11 @@ struct SetCalendarDeliveryIntent: AppIntent {
 
     static var openAppWhenRun: Bool = false
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-     
-        guard let appDelegate = await UIApplication.shared.delegate as? AppDelegate else {
-            throw NSError(domain: "CalendarManagerError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to access AppDelegate"])
-        }
-
         let coreDataManager = await CoreDataManager.create(for: ConstantsCoreData.modelName)
-
         let calendarManager = CalendarManager(coreDataManager: coreDataManager)
-
-        calendarManager.setCalendarDelivery(enabled: enable)
-
+        await calendarManager.setCalendarDelivery(enabled: enable)
         return .result()
     }
 }

@@ -129,32 +129,32 @@ struct XDripWidgetAttributes: ActivityAttributes {
 
                             if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.red.opacity(0.9), Color.red.opacity(0.9)]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    gradient: Gradient(colors: [Color.red.opacity(0.8), Color.red.opacity(0.4)]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
 
                             } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.yellow.opacity(0.9), Color.yellow.opacity(0.7)]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    gradient: Gradient(colors: [Color.yellow.opacity(0.8), Color.yellow.opacity(0.4)]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
 
                             } else {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.8)]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.4)]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
                             }
                         }
                     }
 
                     return LinearGradient(
-                        gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.8)]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.4)]),
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
                 }
 

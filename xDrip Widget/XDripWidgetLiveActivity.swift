@@ -150,20 +150,19 @@ struct LockScreenLiveActivityContentView: View {
         VStack {
             if context.state.liveActivityType == .minimal {
                 HStack(alignment: .center) {
-                    // Display glucose value and trend arrow
-                    Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
-                        .font(.system(size: 35))
-                        .bold()
-                        .foregroundStyle(context.state.bgTextColor())
-                        .minimumScaleFactor(0.1)
-                        .lineLimit(1)
-                    
-                    Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                        .foregroundStyle(.gray)
-                        .opacity(1)
-                        .lineLimit(1)
-                        .font(.system(size: 18))
-                    
+                    VStack {
+                        Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
+                            .font(.system(size: 38))
+                            .fontWeight(.bold)
+                            .foregroundStyle(context.state.bgTextColor())
+                            .minimumScaleFactor(0.1)
+                            .lineLimit(1)
+                        
+                        Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
+                            .foregroundStyle(.colorTertiary)
+                            .minimumScaleFactor(0.1)
+                            .lineLimit(1)
+                    }
                     Spacer()
  
                     if context.state.warnUserToOpenApp {
@@ -179,24 +178,17 @@ struct LockScreenLiveActivityContentView: View {
                         
                         Spacer()
                     }
-             
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(context.state.deltaChangeStringInUserChosenUnit())
-                            .font(.title)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(context.state.deltaChangeTextColor())
-                            .minimumScaleFactor(0.2)
+     
+                    Text("Last reading at: \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
+                            .foregroundStyle(.gray)
+                            .opacity(1)
                             .lineLimit(1)
-                        
-                        Text(context.state.bgUnitString)
-                            .font(.title)
-                            .foregroundStyle(.colorTertiary)
-                            .minimumScaleFactor(0.2)
-                            .lineLimit(1)
+                            .minimumScaleFactor(0.1)
+                          
                     }
-                }
+                
                 .activityBackgroundTint(.black) // Black background for live activity
-                .padding([.top, .bottom], 0)
+                .padding([.top, .bottom], 12)
                 .padding([.leading, .trailing], 20)
 
             } else if context.state.liveActivityType == .normal {

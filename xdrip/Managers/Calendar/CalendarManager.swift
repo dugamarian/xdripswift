@@ -2,6 +2,7 @@ import Foundation
 import os
 import EventKit
 
+@MainActor
 class CalendarManager: NSObject {
     
     private let coreDataManager: CoreDataManager
@@ -10,68 +11,72 @@ class CalendarManager: NSObject {
     private let eventStore = EKEventStore()
     private var timeStampLastProcessedReading = Date(timeIntervalSince1970: 0.0)
     
+    private let sharedUserDefaults = UserDefaults(suiteName: "group.com.xdrip4ios.xdrip")
+    
     init(coreDataManager: CoreDataManager) {
         self.coreDataManager = coreDataManager
         self.bgReadingsAccessor = BgReadingsAccessor(coreDataManager: coreDataManager)
     }
     
     public func processNewReading(lastConnectionStatusChangeTimeStamp: Date?) {
-        if UserDefaults.standard.createCalendarEvent {
+        if sharedUserDefaults?.bool(forKey: "createCalendarEvent") == true {
             createCalendarEvent(lastConnectionStatusChangeTimeStamp: lastConnectionStatusChangeTimeStamp)
         }
     }
     
-    public func setCalendarDelivery(enabled: Bool) {
-        UserDefaults.standard.createCalendarEvent = enabled
+    public func setCalendarDelivery(enabled: Bool) async {
+        sharedUserDefaults?.set(enabled, forKey: "createCalendarEvent")
         if !enabled {
             if EKEventStore.authorizationStatus(for: .event) == .authorized {
                 if let calendar = getCalendar() {
                     deleteAllEvents(in: calendar)
                 } else {
-                    logger.error("Nu a fost găsit niciun calendar.")
+                    logger.error("No calendar found.")
                 }
             } else {
-                logger.info("Accesul la calendar nu este autorizat.")
+                logger.info("Calendar access is not authorized.")
             }
         } else {
-            requestCalendarAccessIfNeeded()
+            await requestCalendarAccessIfNeeded()
         }
     }
     
     private func createCalendarEvent(lastConnectionStatusChangeTimeStamp: Date?) {
         guard EKEventStore.authorizationStatus(for: .event) == .authorized else {
-            logger.info("Accesul la calendar nu este autorizat. Dezactivez livrarea către calendar.")
-            UserDefaults.standard.createCalendarEvent = false
+            logger.info("Calendar access is not authorized. Disabling calendar delivery.")
+            sharedUserDefaults?.set(false, forKey: "createCalendarEvent")
             return
         }
         
         guard let calendar = getCalendar() else {
-            logger.error("Nu a fost găsit niciun calendar.")
+            logger.error("No calendar found.")
             return
         }
         
-        if Int(Date().timeIntervalSince(timeStampLastProcessedReading)) < (UserDefaults.standard.calendarInterval * 60 - 10) {
-            logger.info("Mai puțin de \(UserDefaults.standard.calendarInterval) minute de la ultimul eveniment, nu se va crea un nou eveniment.")
+        if Int(Date().timeIntervalSince(timeStampLastProcessedReading)) < ((sharedUserDefaults?.integer(forKey: "calendarInterval") ?? 15) * 60 - 10) {
+            logger.info("Less than \(self.sharedUserDefaults?.integer(forKey: "calendarInterval") ?? 15) minutes since the last event, a new event will not be created.")
             return
         }
         
         let lastReading = bgReadingsAccessor.get2LatestBgReadings(minimumTimeIntervalInMinutes: 4.0)
         
         guard lastReading.count > 0 else {
-            logger.info("Nu există citiri noi de procesat.")
+            logger.info("No new readings to process.")
             return
         }
         
         guard abs(lastReading[0].timeStamp.timeIntervalSinceNow) < 5 * 60 else {
-            logger.info("Ultima citire este mai veche de 5 minute.")
+            logger.info("The last reading is older than 5 minutes.")
             return
         }
         
         deleteAllEvents(in: calendar)
         
-        var title = lastReading[0].unitizedString(unitIsMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl)
+        let unitIsMgDl = UserDefaults.standard.bloodGlucoseUnitIsMgDl
+        var title = lastReading[0].unitizedString(unitIsMgDl: unitIsMgDl)
         
-        if UserDefaults.standard.displayVisualIndicatorInCalendarEvent {
+        let displayVisualIndicator = UserDefaults.standard.displayVisualIndicatorInCalendarEvent
+        if displayVisualIndicator {
             var visualIndicator = ""
             switch lastReading[0].bgRangeDescription() {
             case .inRange:
@@ -84,18 +89,21 @@ class CalendarManager: NSObject {
             title = visualIndicator + " " + title
         }
         
-        if !lastReading[0].hideSlope && UserDefaults.standard.displayTrendInCalendarEvent {
+        let displayTrend = UserDefaults.standard.displayTrendInCalendarEvent
+        if !lastReading[0].hideSlope && displayTrend {
             title = title + " " + lastReading[0].slopeArrow()
         }
         
-        if UserDefaults.standard.displayDeltaInCalendarEvent && lastReading.count > 1 {
+        let displayDelta = UserDefaults.standard.displayDeltaInCalendarEvent
+        let displayUnit = UserDefaults.standard.displayUnitInCalendarEvent
+        if displayDelta && lastReading.count > 1 {
             title = title + " " + lastReading[0].unitizedDeltaString(
                 previousBgReading: lastReading[1],
-                showUnit: UserDefaults.standard.displayUnitInCalendarEvent,
+                showUnit: displayUnit,
                 highGranularity: true,
-                mgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl)
-        } else if UserDefaults.standard.displayUnitInCalendarEvent {
-            title = title + " " + (UserDefaults.standard.bloodGlucoseUnitIsMgDl ? Texts_Common.mgdl : Texts_Common.mmol)
+                mgDl: unitIsMgDl)
+        } else if displayUnit {
+            title = title + " " + (unitIsMgDl ? Texts_Common.mgdl : Texts_Common.mmol)
         }
         
         let event = EKEvent(eventStore: eventStore)
@@ -109,12 +117,12 @@ class CalendarManager: NSObject {
             try eventStore.save(event, span: .thisEvent)
             timeStampLastProcessedReading = lastReading[0].timeStamp
         } catch let error {
-            logger.error("Eroare la salvarea evenimentului: \(error.localizedDescription)")
+            logger.error("Error saving event: \(error.localizedDescription)")
         }
     }
     
     private func getCalendar() -> EKCalendar? {
-        if let calendarIdInUserDefaults = UserDefaults.standard.calenderId {
+        if let calendarIdInUserDefaults = sharedUserDefaults?.string(forKey: "calenderId") {
             for calendar in eventStore.calendars(for: .event) {
                 if calendar.title == calendarIdInUserDefaults {
                     return calendar
@@ -123,10 +131,10 @@ class CalendarManager: NSObject {
         }
         
         if let defaultCalendar = eventStore.defaultCalendarForNewEvents {
-            UserDefaults.standard.calenderId = defaultCalendar.title
+            sharedUserDefaults?.set(defaultCalendar.title, forKey: "calenderId")
             return defaultCalendar
         } else {
-            logger.error("Nu există un calendar implicit pentru evenimente noi.")
+            logger.error("No default calendar for new events.")
             return nil
         }
     }
@@ -141,29 +149,42 @@ class CalendarManager: NSObject {
                 do {
                     try eventStore.remove(event, span: .thisEvent)
                 } catch let error {
-                    logger.error("Eroare la ștergerea evenimentului: \(error.localizedDescription)")
+                    logger.error("Error deleting event: \(error.localizedDescription)")
                 }
             }
         }
     }
     
-    private func requestCalendarAccessIfNeeded() {
+    private func requestCalendarAccessIfNeeded() async {
         let status = EKEventStore.authorizationStatus(for: .event)
         switch status {
         case .notDetermined:
-            eventStore.requestAccess(to: .event) { granted, error in
+            if Bundle.main.isExtension {
+                logger.error("Cannot request calendar access in an extension.")
+                return
+            }
+            do {
+                let granted = try await eventStore.requestAccess(to: .event)
                 if granted {
-                    self.logger.info("Accesul to calendar was autorised.")
+                    logger.info("Calendar access has been authorized.")
                 } else {
-                    self.logger.error("Acces to calendar was refused.")
+                    logger.error("Calendar access has been denied.")
                 }
+            } catch {
+                logger.error("Error requesting calendar access: \(error.localizedDescription)")
             }
         case .denied, .restricted:
-            logger.error("Acces to calendar was refused.")
+            logger.error("Calendar access has been denied.")
         case .authorized:
-            logger.info("Acces to calendar was already autorised.")
+            logger.info("Calendar access is already authorized.")
         @unknown default:
-            logger.error("unknown state.")
+            logger.error("Unknown authorization status.")
         }
+    }
+}
+
+extension Bundle {
+    var isExtension: Bool {
+        return bundleURL.pathExtension == "appex"
     }
 }
