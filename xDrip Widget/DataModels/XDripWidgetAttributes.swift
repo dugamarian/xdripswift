@@ -136,7 +136,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
 
                             } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.brown.opacity(0.8), Color.brown.opacity(0.4)]),
+                                    gradient: Gradient(colors: [Color.orange.opacity(0.8), Color.orange.opacity(0.4)]),
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )

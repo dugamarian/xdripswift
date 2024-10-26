@@ -157,14 +157,18 @@ struct LockScreenLiveActivityContentView: View {
                             .foregroundStyle(context.state.bgTextColor())
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
                             .foregroundStyle(.colorTertiary)
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fontWeight(.bold)
+                            
                     }
                     Spacer()
- 
+                    
                     if context.state.warnUserToOpenApp {
                         Text("Open app...")
                             .font(.footnote)
@@ -179,7 +183,7 @@ struct LockScreenLiveActivityContentView: View {
                         Spacer()
                     }
      
-                    Text("Last reading at: \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
+                    Text("Updated: \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
                             .foregroundStyle(.gray)
                             .opacity(1)
                             .lineLimit(1)
@@ -187,9 +191,9 @@ struct LockScreenLiveActivityContentView: View {
                           
                     }
                 
-                .activityBackgroundTint(.black) // Black background for live activity
-                .padding([.top, .bottom], 12)
-                .padding([.leading, .trailing], 20)
+                .activityBackgroundTint(.black)
+                .padding([.top, .bottom], 15)
+                .padding([.leading, .trailing], 35)
 
             } else if context.state.liveActivityType == .normal {
                 HStack(spacing: 30) {
@@ -260,8 +264,8 @@ struct LockScreenLiveActivityContentView: View {
                     }
                 }
                 .activityBackgroundTint(.black)
-                .padding(.top, 10)
-                .padding(.bottom, 10)
+                .padding(.top, 14)
+                .padding(.bottom, 12)
             } else {
                 ZStack {
                     VStack(spacing: 0) {
@@ -375,11 +379,12 @@ struct SmartStackLiveActivityContentView: View {
                                 .foregroundColor(.brightWhite)
                                 .font(.system(size: 36))
                                 .minimumScaleFactor(0.2)
-                                .fontWeight(.semibold)
+                                .fontWeight(.bold)
                         }
                         Text(context.state.trendArrow())
                             .font(.system(size: 20))
                             .lineLimit(1)
+                            .fontWeight(.bold)
                     }
                 }
                 
