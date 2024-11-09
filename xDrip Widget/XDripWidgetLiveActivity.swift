@@ -157,14 +157,18 @@ struct LockScreenLiveActivityContentView: View {
                             .foregroundStyle(context.state.bgTextColor())
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
                             .foregroundStyle(.colorTertiary)
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fontWeight(.bold)
+                            
                     }
                     Spacer()
- 
+                    
                     if context.state.warnUserToOpenApp {
                         Text("Open app...")
                             .font(.footnote)
@@ -179,7 +183,7 @@ struct LockScreenLiveActivityContentView: View {
                         Spacer()
                     }
      
-                    Text("Last reading at: \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
+                    Text("Updated: \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
                             .foregroundStyle(.gray)
                             .opacity(1)
                             .lineLimit(1)
@@ -187,9 +191,9 @@ struct LockScreenLiveActivityContentView: View {
                           
                     }
                 
-                .activityBackgroundTint(.black) // Black background for live activity
-                .padding([.top, .bottom], 12)
-                .padding([.leading, .trailing], 20)
+                .activityBackgroundTint(.black)
+                .padding([.top, .bottom], 15)
+                .padding([.leading, .trailing], 35)
 
             } else if context.state.liveActivityType == .normal {
                 HStack(spacing: 30) {
@@ -260,8 +264,8 @@ struct LockScreenLiveActivityContentView: View {
                     }
                 }
                 .activityBackgroundTint(.black)
-                .padding(.top, 10)
-                .padding(.bottom, 10)
+                .padding(.top, 14)
+                .padding(.bottom, 12)
             } else {
                 ZStack {
                     VStack(spacing: 0) {
@@ -366,56 +370,49 @@ struct SmartStackLiveActivityContentView: View {
         ZStack {
             context.state.backgroundWidgetColor()
                 .ignoresSafeArea()
-            HStack {
-                VStack(alignment: .leading) {
-                    HStack(alignment: .center, spacing: 0) {
-                        Spacer()
-                        VStack {
-                            Text(context.state.bgValueStringInUserChosenUnit)
-                                .foregroundColor(.brightWhite)
-                                .font(.system(size: 36))
-                                .minimumScaleFactor(0.2)
-                                .fontWeight(.semibold)
-                        }
-                        Text(context.state.trendArrow())
-                            .font(.system(size: 20))
-                            .lineLimit(1)
-                    }
-                }
-                
-                VStack(alignment: .center, spacing: 5) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(context.state.deltaChangeStringInUserChosenUnit())
-                            .font(.system(size: 20))
-                            .fontWeight(.semibold)
+            
+            VStack {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
-                            .monospacedDigit()
-           
-                        Text(context.state.bgUnitString)
-                            .font(.system(size: 20))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
-                            .minimumScaleFactor(0.2)
-                            .lineLimit(1)
-                            .monospacedDigit()
-                            .frame(alignment: .center)
+                            .padding(.top, 10)
+                       
                     }
-                    
+                    Spacer()
                     Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                        .font(.system(size: 20))
+                        .font(.system(size: 15))
                         .foregroundStyle(.primary)
-                        .fontWeight(.semibold)
                         .minimumScaleFactor(0.2)
                         .lineLimit(1)
+                        .padding(.top, 10)
                 }
+                .padding([.horizontal, .top], 10)
+                
+           //     Spacer()
+                
+                HStack(spacing: 5) {
+                    Text(context.state.bgValueStringInUserChosenUnit)
+                        .foregroundColor(.brightWhite)
+                        .font(.system(size: 90))
+                        .minimumScaleFactor(0.5)
+                        .padding(.bottom, 20)
+                       
+                    
+                    Text(context.state.trendArrow())
+                        .font(.system(size: 25))
+                        .lineLimit(1)
+                        .padding(.bottom, 25)
+                        
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                
+                Spacer()
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .font(.footnote)
         }
     }
 }
-
 @available(iOS 18.0, *)
 struct NewerLockScreenLiveActivityContentView: View {
     @Environment(\.activityFamily) var activityFamily // Detects the size/family of the activity

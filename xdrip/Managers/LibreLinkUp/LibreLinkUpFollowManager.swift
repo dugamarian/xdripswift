@@ -11,6 +11,19 @@ import os
 import AVFoundation
 import AudioToolbox
 
+enum LLUTrendMap: Int {
+    case notComputable = 0
+    case downDown = 1
+    case down = 2
+    case flat = 3
+    case up = 4
+    case upUp = 5
+
+    init?(_ trendArrow: Int) {
+        self.init(rawValue: trendArrow)
+    }
+}
+
 /// instance of this class will do the follower functionality. Just make an instance, it will listen to the settings, do the regular download if needed - it could be deallocated when isMaster setting in Userdefaults changes, but that's not necessary to do
 class LibreLinkUpFollowManager: NSObject {
     
@@ -150,23 +163,57 @@ class LibreLinkUpFollowManager: NSObject {
     /// - returns:
     ///     - BgReading : the new reading, not saved in the coredata
     public func createBgReading(followGlucoseData: FollowerBgReading) -> BgReading {
-        
-        // set the device name in the BG Reading, especially useful for later uploading the Nightscout
+        // Set the device name in the BG Reading
         let deviceName = ConstantsHomeView.applicationName + " (LibreLinkUp)"
-        
-        // create new bgReading
-        let bgReading = BgReading(timeStamp: followGlucoseData.timeStamp, sensor: nil, calibration: nil, rawData: followGlucoseData.sgv, deviceName: deviceName, nsManagedObjectContext: coreDataManager.mainManagedObjectContext)
-        
-        // set calculatedValue
+
+        // Create a new BgReading
+        let bgReading = BgReading(
+            timeStamp: followGlucoseData.timeStamp,
+            sensor: nil,
+            calibration: nil,
+            rawData: followGlucoseData.sgv,
+            deviceName: deviceName,
+            nsManagedObjectContext: coreDataManager.mainManagedObjectContext
+        )
+
+        // Set calculatedValue
         bgReading.calculatedValue = followGlucoseData.sgv
-        
-        // set calculatedValueSlope
-        let (calculatedValueSlope, hideSlope) = findSlope()
-        bgReading.calculatedValueSlope = calculatedValueSlope
-        bgReading.hideSlope = hideSlope
-        
+
+        // Set calculatedValueSlope and hideSlope based on the trend arrow
+        if let trendInt = followGlucoseData.trend, let trend = LLUTrendMap(trendInt) {
+            let (calculatedValueSlope, hideSlope) = calculateSlopeFromTrend(trend)
+            bgReading.calculatedValueSlope = calculatedValueSlope
+            bgReading.hideSlope = hideSlope
+        } else {
+            // If trend is not available, set default values
+            bgReading.calculatedValueSlope = 0
+            bgReading.hideSlope = true
+        }
+
         return bgReading
-        
+    }
+    
+    private func calculateSlopeFromTrend(_ trend: LLUTrendMap) -> (Double, Bool) {
+        var hideSlope = false
+        var calculatedValueSlope: Double = 0.0
+
+        switch trend {
+        case .upUp:
+            calculatedValueSlope = 2.75 / 60000
+        case .up:
+            calculatedValueSlope = 1.25 / 60000
+        case .flat:
+            calculatedValueSlope = 0.0
+        case .down:
+            calculatedValueSlope = -1.25 / 60000
+        case .downDown:
+            calculatedValueSlope = -2.75 / 60000
+        case .notComputable:
+            hideSlope = true
+            calculatedValueSlope = 0.0
+        }
+
+        return (calculatedValueSlope, hideSlope)
     }
     
     // MARK: - private functions
@@ -175,25 +222,7 @@ class LibreLinkUpFollowManager: NSObject {
     ///
     /// updates bgreading
     ///
-    private func findSlope() -> (calculatedValueSlope: Double, hideSlope: Bool) {
-        
-        // init returnvalues
-        var hideSlope = true
-        var calculatedValueSlope = 0.0
-        
-        // get last readings
-        let last2Readings = bgReadingsAccessor.getLatestBgReadings(limit: 3, howOld: 1, forSensor: nil, ignoreRawData: true, ignoreCalculatedValue: false)
-        
-        // if more thant 2 readings, calculate slope and hie
-        if last2Readings.count >= 2 {
-            let (slope, hide) = last2Readings[0].calculateSlope(lastBgReading:last2Readings[1])
-            calculatedValueSlope = slope
-            hideSlope = hide
-        }
-        
-        return (calculatedValueSlope, hideSlope)
-        
-    }
+   
     
     
     /// download recent readings from LibreView, send result to delegate, and schedule new download
@@ -217,21 +246,21 @@ class LibreLinkUpFollowManager: NSObject {
             trace("    followerDataSourceType is not libreLinkUp", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
             return
         }
-
+        
         guard UserDefaults.standard.libreLinkUpEmail != nil else {
             trace("    libreLinkUpEmail is nil", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
             return
         }
-
+        
         guard UserDefaults.standard.libreLinkUpPassword != nil else {
             trace("    libreLinkUpPassword is nil", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
             return
         }
-
-        Task {
+        
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
             
             do {
-                
                 // LibreLink follower based upon process outlined here:
                 // https://gist.github.com/khskekec/6c13ba01b10d3018d816706a32ae8ab2
                 //
@@ -245,9 +274,7 @@ class LibreLinkUpFollowManager: NSObject {
                 try await checkLoginAndConnections()
                 
                 // this takes care of 3
-                if (self.libreLinkUpToken != nil && self.libreLinkUpPatientId != nil) {
-                    
-                    guard let patientId = self.libreLinkUpPatientId else { return }
+                if let token = self.libreLinkUpToken, let patientId = self.libreLinkUpPatientId {
                     
                     // at this stage, we've now got a valid authentication token and we know the patientId we need to follow
                     let graphResponse = try await requestGraph(patientId: patientId)
@@ -270,7 +297,9 @@ class LibreLinkUpFollowManager: NSObject {
                             // must be a L2 (or Libre 2 Plus) sensor
                             activeSensorDescription = "Libre 2"
                             
-                        } else if serialNumber.range(of: #"^0D"#, options: .regularExpression) != nil || serialNumber.range(of: #"^0E"#, options: .regularExpression) != nil || serialNumber.range(of: #"^0F"#, options: .regularExpression) != nil{
+                        } else if serialNumber.range(of: #"^0D"#, options: .regularExpression) != nil ||
+                                    serialNumber.range(of: #"^0E"#, options: .regularExpression) != nil ||
+                                    serialNumber.range(of: #"^0F"#, options: .regularExpression) != nil {
                             
                             // must be a Libre 3 (or Libre 3 Plus) sensor
                             activeSensorDescription = "Libre 3"
@@ -278,7 +307,7 @@ class LibreLinkUpFollowManager: NSObject {
                         }
                         
                         UserDefaults.standard.activeSensorDescription = UserDefaults.standard.followerDataSourceType.fullDescription + " (" + activeSensorDescription + ")"
-                                         
+                        
                     } else {
                         
                         // this will only happen if the account doesn't have an active sensor connected
@@ -292,7 +321,7 @@ class LibreLinkUpFollowManager: NSObject {
                     }
                     
                     // now let's tidy up the historical glucoseMeasurements into a nice array and then append the current glucoseMeasurement
-                    let glucoseMeasurementsArray = (graphResponse.data?.graphData ?? []) + [graphResponse.data?.connection?.glucoseMeasurement]
+                    let glucoseMeasurementsArray = (graphResponse.data?.graphData ?? []) + [graphResponse.data?.connection?.glucoseMeasurement].compactMap { $0 }
                     
                     trace("    in download, %{public}@ BG values downloaded", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info, glucoseMeasurementsArray.count.description)
                     
@@ -301,34 +330,21 @@ class LibreLinkUpFollowManager: NSObject {
                     
                     self.processDownloadResponse(data: glucoseMeasurementsArray, followGlucoseDataArray: &followGlucoseDataArray)
                     
-                    // call to delegate and rescheduling the timer must be done in main thread;
-                    DispatchQueue.main.sync {
-                        
-                        // call delegate followerInfoReceived which will process the new readings
-                        if let followerDelegate = self.followerDelegate {
-                            followerDelegate.followerInfoReceived(followGlucoseDataArray: &followGlucoseDataArray)
-                        }
-                        
+                    // call to delegate
+                    if let followerDelegate = self.followerDelegate {
+                        followerDelegate.followerInfoReceived(followGlucoseDataArray: &followGlucoseDataArray)
                     }
                     
                 }
-                
             } catch let error {
-                
                 // log the error that was thrown. As it doesn't have a specific handler, we'll assume no further actions are needed
                 trace("    in download, error = %{public}@", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .error, error.localizedDescription)
             }
             
-            // rescheduling the timer must be done in main thread
-            // we do it here at the end of the function so that it is always rescheduled once a valid connection is established, irrespective of whether we get values.
-            DispatchQueue.main.sync {
-                // schedule new download
-                self.scheduleNewDownload()
-            }
+            // reschedule the download
+            self.scheduleNewDownload()
         }
     }
-    
-    
     /// if needed, perform a login request and retreive authentication token and expiry date. Then retreive the patient ID.
     private func checkLoginAndConnections() async throws {
         
@@ -684,6 +700,7 @@ class LibreLinkUpFollowManager: NSObject {
     
     
     /// schedule new download with timer, when timer expires download() will be called
+    /// 
     private func scheduleNewDownload() {
         
         guard UserDefaults.standard.followerBackgroundKeepAliveType != .heartbeat else { return }
@@ -917,4 +934,22 @@ extension LibreLinkUpFollowError: CustomStringConvertible {
         
     }
     
+}
+extension LLUTrendMap {
+    var arrow: String {
+        switch self {
+        case .upUp:
+            return "↑"
+        case .up:
+            return "↗︎"
+        case .flat:
+            return "→"
+        case .down:
+            return "↘︎"
+        case .downDown:
+            return "↓"
+        case .notComputable:
+            return "?"
+        }
+    }
 }

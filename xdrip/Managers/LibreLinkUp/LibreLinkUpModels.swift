@@ -274,6 +274,8 @@ struct RequestGraphResponseGlucoseMeasurement: Codable {
     
     // the glucose measurement value in mg/dL
     let ValueInMgPerDl: Double
+    
+    let TrendArrow: Int?
 }
 
 /// struct to define data.activeSensors.[x].sensor.xxxxx

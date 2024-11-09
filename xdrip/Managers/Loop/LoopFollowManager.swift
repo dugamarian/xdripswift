@@ -47,7 +47,7 @@ class LoopFollowManager: NSObject {
             
             guard let date = reading["date"] as? Double, let sgv = reading["sgv"] as? Double else {return}
             
-            followGlucoseDataArray.append(FollowerBgReading(timeStamp: Date(timeIntervalSince1970: date/1000), sgv: sgv))
+            followGlucoseDataArray.append(FollowerBgReading(timeStamp: Date(timeIntervalSince1970: date/1000), sgv: sgv, trend: Int()))
             
         }
 

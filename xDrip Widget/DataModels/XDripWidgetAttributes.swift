@@ -129,21 +129,21 @@ struct XDripWidgetAttributes: ActivityAttributes {
 
                             if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.red.opacity(0.8), Color.red.opacity(0.4)]),
+                                    gradient: Gradient(colors: [Color.red.opacity(0.6), Color.red.opacity(0.1)]),
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
 
                             } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.yellow.opacity(0.8), Color.yellow.opacity(0.4)]),
+                                    gradient: Gradient(colors: [Color.orange.opacity(0.6), Color.orange.opacity(0.1)]),
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
 
                             } else {
                                 return LinearGradient(
-                                    gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.4)]),
+                                    gradient: Gradient(colors: [Color.green.opacity(0.6), Color.green.opacity(0.1)]),
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -152,7 +152,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
                     }
 
                     return LinearGradient(
-                        gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.4)]),
+                        gradient: Gradient(colors: [Color.green.opacity(0.6), Color.green.opacity(0.1)]),
                         startPoint: .top,
                         endPoint: .bottom
                     )
