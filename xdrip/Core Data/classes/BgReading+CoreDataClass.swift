@@ -80,6 +80,25 @@ public class BgReading: NSManagedObject {
         }
     }
     
+    func calendarSlopeArrow() -> String {
+        let slope_by_minute = calculatedValueSlope * 60000
+                if (slope_by_minute <= (-3.5)) {
+                    return "\u{2193}\u{2193}" // ↓↓
+                } else if (slope_by_minute <= (-2)) {
+                    return "\u{2193}" // ↓
+                } else if (slope_by_minute <= (-1)) {
+                    return "\u{2198}" // ↘
+                } else if (slope_by_minute <= (1)) {
+                    return "\u{2192}" // →
+                } else if (slope_by_minute <= (2)) {
+                    return "\u{2197}" // ↗
+                } else if (slope_by_minute <= (3.5)) {
+                    return "\u{2191}" // ↑
+                } else {
+                    return "\u{2191}\u{2191}" // ↑↑
+                }
+    }
+    
     func slopeOrdinal() -> Int {
         let slope_by_minute = calculatedValueSlope * 60000
         var ordinal = 0

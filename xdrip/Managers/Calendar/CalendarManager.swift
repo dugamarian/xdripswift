@@ -91,7 +91,7 @@ class CalendarManager: NSObject {
         
         let displayTrend = UserDefaults.standard.displayTrendInCalendarEvent
         if !lastReading[0].hideSlope && displayTrend {
-            title = title + " " + lastReading[0].slopeArrow()
+            title = title + " " + lastReading[0].calendarSlopeArrow()
         }
         
         let displayDelta = UserDefaults.standard.displayDeltaInCalendarEvent
