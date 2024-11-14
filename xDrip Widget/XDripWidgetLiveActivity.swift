@@ -192,8 +192,8 @@ struct LockScreenLiveActivityContentView: View {
                     }
                 
                 .activityBackgroundTint(.black)
-                .padding([.top, .bottom], 15)
-                .padding([.leading, .trailing], 35)
+                .padding([.top, .bottom], 10)
+                .padding([.leading, .trailing], 55)
 
             } else if context.state.liveActivityType == .normal {
                 HStack(spacing: 30) {

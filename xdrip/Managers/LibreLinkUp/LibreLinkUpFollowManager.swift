@@ -258,7 +258,7 @@ class LibreLinkUpFollowManager: NSObject {
         }
         
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             
             do {
                 // LibreLink follower based upon process outlined here:
