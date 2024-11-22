@@ -3571,7 +3571,7 @@ final class RootViewController: UIViewController, ObservableObject {
                     // create the contentState that will update the dynamic attributes of the Live Activity Widget
                     let contentState = XDripWidgetAttributes.ContentState( bgReadingValues: bgReadingValues, bgReadingDates: bgReadingDates, isMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl, slopeOrdinal: slopeOrdinal, deltaValueInUserUnit: deltaValueInUserUnit, urgentLowLimitInMgDl: UserDefaults.standard.urgentLowMarkValue, lowLimitInMgDl: UserDefaults.standard.lowMarkValue, highLimitInMgDl: UserDefaults.standard.highMarkValue, urgentHighLimitInMgDl: UserDefaults.standard.urgentHighMarkValue, liveActivityType: UserDefaults.standard.liveActivityType, dataSourceDescription: dataSourceDescription)
                     
-                    LiveActivityManager.shared.runActivity(contentState: contentState, forceRestart: forceRestart)
+                      LiveActivityManager.shared.runActivity(contentState: contentState, forceRestart: forceRestart)
                 } else {
                     LiveActivityManager.shared.endAllActivities()
                 }

@@ -47,16 +47,16 @@ extension LiveActivityManager {
             // running activity (in which case update it) or if not, start a new one
             if eventActivity == nil {
                 trace("in runActivity, starting new live activity", log: self.log, category: ConstantsLog.categoryLiveActivityManager, type: .info)
-                
+                endAllActivities()
                 startActivity(contentState: contentState)
             } else if forceRestart && eventStartDate < Date().addingTimeInterval(-ConstantsLiveActivity.allowLiveActivityRestartAfterMinutes) {
                 // force an end/start cycle of the activity when the app comes to the foreground assuming at least 'x' hours have passed. This restarts the 8 hour limit.
                 trace("in runActivity, restarting live activity", log: self.log, category: ConstantsLog.categoryLiveActivityManager, type: .info)
                 
-                Task {
-                    await endActivity()
-                    startActivity(contentState: contentState)
-                }
+              
+                endAllActivities()
+                startActivity(contentState: contentState)
+                
             } else if eventStartDate < Date().addingTimeInterval(-ConstantsLiveActivity.endLiveActivityAfterMinutes) {
                 // if the activity has been running for almost 8 hours, proactively end the activity before it goes stale
                 trace("in runActivity, ending live activity on purpose to avoid staying on the screen when stale", log: self.log, category: ConstantsLog.categoryLiveActivityManager, type: .info)
@@ -64,7 +64,8 @@ extension LiveActivityManager {
                 Task {
                     await endActivity()
                 }
-            } else {
+            }
+            else {
                 // none of the above conditions are true so let's just update the activity
                 trace("in runActivity, updating live activity", log: self.log, category: ConstantsLog.categoryLiveActivityManager, type: .info)
                 

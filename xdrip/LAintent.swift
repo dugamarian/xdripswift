@@ -34,7 +34,6 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
             ignoreCalculatedValue: false
         )
         
-        // Ensure readings are sorted in descending order (most recent first)
         bgReadings.sort { $0.timeStamp > $1.timeStamp }
 
         guard bgReadings.count >= 2 else {
@@ -49,66 +48,41 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
             bgReadingDates.append(bgReading.timeStamp)
         }
 
-        // Retrieve user settings
         let isMgDl = UserDefaults.standard.bloodGlucoseUnitIsMgDl
         let urgentLowLimitInMgDl = UserDefaults.standard.urgentLowMarkValue
         let lowLimitInMgDl = UserDefaults.standard.lowMarkValue
         let highLimitInMgDl = UserDefaults.standard.highMarkValue
         let urgentHighLimitInMgDl = UserDefaults.standard.urgentHighMarkValue
-        let dataSourceDescription = "" // Provide a description if available
+        let dataSourceDescription = ""
 
-        // Get the most recent reading and the previous one
         let currentReading = bgReadings[0]
         let previousReading = bgReadings[1]
 
-        // Calculate delta change
         let deltaChangeInMgDl = currentReading.calculatedValue - previousReading.calculatedValue
 
         // Calculate the time difference in milliseconds
-        let timeDifference = currentReading.timeStamp.timeIntervalSince(previousReading.timeStamp) * 1000 // milliseconds
+ //       let timeDifference = currentReading.timeStamp.timeIntervalSince(previousReading.timeStamp) * 1000 // milliseconds
 
         // Avoid division by zero
-        guard timeDifference != 0 else {
-            throw IntentError.message("Time difference between readings is zero.")
-        }
+ //       guard timeDifference != 0 else {
+//            throw IntentError.message("Time difference between readings is zero.")
+ //       }
 
         // Calculate the slope (change per millisecond)
-        let calculatedValueSlope = deltaChangeInMgDl / timeDifference
+  //      let calculatedValueSlope = deltaChangeInMgDl / timeDifference
 
         // Calculate slope_by_minute
-        let slope_by_minute = calculatedValueSlope * 60000
-
-        // Calculate the slopeOrdinal
-        let slopeOrdinal: Int
-        if !currentReading.hideSlope {
-            switch slope_by_minute {
-            case ..<(-3.5):
-                slopeOrdinal = 7 // Dropping Fast
-            case -3.5 ..< -2:
-                slopeOrdinal = 6 // Dropping
-            case -2 ..< -1:
-                slopeOrdinal = 5 // Slowly Dropping
-            case -1 ..< 1:
-                slopeOrdinal = 4 // Stable
-            case 1 ..< 2:
-                slopeOrdinal = 3 // Slowly Rising
-            case 2 ..< 3.5:
-                slopeOrdinal = 2 // Rising
-            default:
-                slopeOrdinal = 1 // Rising Fast
-            }
-        } else {
-            slopeOrdinal = 0 // When hideSlope is true
-        }
-
+  //      let slope_by_minute = calculatedValueSlope * 60000
+    
+        let curentSlope = currentReading.slopeOrdinal()
+    
         let size = UserDefaults.standard.liveActivityType
 
-        // Create the content state
         let contentState = XDripWidgetAttributes.ContentState(
             bgReadingValues: bgReadingValues,
             bgReadingDates: bgReadingDates,
             isMgDl: isMgDl,
-            slopeOrdinal: slopeOrdinal,
+            slopeOrdinal: curentSlope,
             deltaValueInUserUnit: deltaChangeInMgDl,
             urgentLowLimitInMgDl: urgentLowLimitInMgDl,
             lowLimitInMgDl: lowLimitInMgDl,
@@ -119,7 +93,9 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
         )
 
         // Restart the live activity
-        LiveActivityManager.shared.runActivity(contentState: contentState, forceRestart: true)
+    
+            LiveActivityManager.shared.runActivity(contentState: contentState, forceRestart: true)
+        
 
         return .result()
     }
