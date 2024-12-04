@@ -85,6 +85,9 @@ class SettingsViewContactImageSettingsViewModel: SettingsViewModelProtocol {
             case .authorized:
                 return .none
                 
+            case .limited:
+                return .none
+                
             @unknown default:
                 trace("in SettingsViewContactImageSettingsViewModel, unknown case returned when authorizing EKEventStore ", log: self.log, category: ConstantsLog.categoryRootView, type: .error)
                 return .none
@@ -161,6 +164,9 @@ class SettingsViewContactImageSettingsViewModel: SettingsViewModelProtocol {
                     trace("in SettingsViewContactImageSettingsViewModel, CNContactStore access authorized", log: self.log, category: ConstantsLog.categoryRootView, type: .error)
                     UserDefaults.standard.enableContactImage = true
                     
+                case .limited:
+                    trace("in SettingsViewContactImageSettingsViewModel, unknown case returned when authorizing EKEventStore ", log: self.log, category: ConstantsLog.categoryRootView, type: .error)
+                    
                 @unknown default:
                     trace("in SettingsViewContactImageSettingsViewModel, unknown case returned when authorizing EKEventStore ", log: self.log, category: ConstantsLog.categoryRootView, type: .error)
                     
@@ -224,6 +230,9 @@ class SettingsViewContactImageSettingsViewModel: SettingsViewModelProtocol {
             case .restricted:
                 // by clicking row, show what it means to be restricted, according to Apple doc
                 return SettingsSelectedRowAction.showInfoText(title: Texts_Common.warning, message: Texts_SettingsView.infoContactsAccessRestricted)
+                
+            case .limited:
+                trace("in SettingsViewContactImageSettingsViewModel, unknown case returned when authorizing CNContactStore ", log: self.log, category: ConstantsLog.categoryRootView, type: .error)
                 
             @unknown default:
                 trace("in SettingsViewContactImageSettingsViewModel, unknown case returned when authorizing CNContactStore ", log: self.log, category: ConstantsLog.categoryRootView, type: .error)

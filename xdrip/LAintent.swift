@@ -23,7 +23,7 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
    
     @MainActor
     func perform() async throws -> some IntentResult {
-        // Fetch the latest glucose data
+        
         let coreDataManager = await CoreDataManager.create(for: ConstantsCoreData.modelName)
         let bgReadingsAccessor = BgReadingsAccessor(coreDataManager: coreDataManager)
         var bgReadings = bgReadingsAccessor.getLatestBgReadings(
@@ -60,19 +60,6 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
 
         let deltaChangeInMgDl = currentReading.calculatedValue - previousReading.calculatedValue
 
-        // Calculate the time difference in milliseconds
- //       let timeDifference = currentReading.timeStamp.timeIntervalSince(previousReading.timeStamp) * 1000 // milliseconds
-
-        // Avoid division by zero
- //       guard timeDifference != 0 else {
-//            throw IntentError.message("Time difference between readings is zero.")
- //       }
-
-        // Calculate the slope (change per millisecond)
-  //      let calculatedValueSlope = deltaChangeInMgDl / timeDifference
-
-        // Calculate slope_by_minute
-  //      let slope_by_minute = calculatedValueSlope * 60000
     
         let curentSlope = currentReading.slopeOrdinal()
     

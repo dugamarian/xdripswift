@@ -25,7 +25,7 @@ class CalendarManager: NSObject {
     }
     
     public func setCalendarDelivery(enabled: Bool) async {
-        sharedUserDefaults?.set(enabled, forKey: "createCalendarEvent")
+        UserDefaults.standard.set(enabled, forKey: "createCalendarEvent")
         if !enabled {
             if EKEventStore.authorizationStatus(for: .event) == .authorized {
                 if let calendar = getCalendar() {
@@ -177,6 +177,10 @@ class CalendarManager: NSObject {
             logger.error("Calendar access has been denied.")
         case .authorized:
             logger.info("Calendar access is already authorized.")
+        case .fullAccess:
+            logger.info("Full Acces.")
+        case .writeOnly:
+            logger.info("Write only.")
         @unknown default:
             logger.error("Unknown authorization status.")
         }
