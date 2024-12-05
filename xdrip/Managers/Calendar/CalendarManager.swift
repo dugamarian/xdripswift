@@ -25,7 +25,7 @@ class CalendarManager: NSObject {
     }
     
     public func setCalendarDelivery(enabled: Bool) async {
-        UserDefaults.standard.set(enabled, forKey: "createCalendarEvent")
+        sharedUserDefaults?.set(enabled, forKey: "createCalendarEvent")
         if !enabled {
             if EKEventStore.authorizationStatus(for: .event) == .authorized {
                 if let calendar = getCalendar() {
