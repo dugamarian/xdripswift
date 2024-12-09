@@ -1,109 +1,123 @@
 import Foundation
-import os
 import EventKit
+import os
 
-@MainActor
 class CalendarManager: NSObject {
+    
+    // MARK: - Private Properties
     
     private let coreDataManager: CoreDataManager
     private let bgReadingsAccessor: BgReadingsAccessor
-    private let logger = Logger(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryCalendarManager)
     private let eventStore = EKEventStore()
+    private var log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryCalendarManager)
+
     private var timeStampLastProcessedReading = Date(timeIntervalSince1970: 0.0)
+
+    private var isDeliveryOn: Bool = false
     
-    private let sharedUserDefaults = UserDefaults(suiteName: "group.com.xdrip4ios.xdrip")
+   
+    private var calendarInterval: Int = 10
+    private var bloodGlucoseUnitIsMgDl: Bool = true
+    private var displayVisualIndicatorInCalendarEvent: Bool = false
+    private var displayTrendInCalendarEvent: Bool = true
+    private var displayDeltaInCalendarEvent: Bool = false
+    private var displayUnitInCalendarEvent: Bool = true
+    private var calendarId: String? = nil
+    private var lastConnectionStatusChangeTimeStamp: Date? = Date(timeIntervalSince1970: 0)
+    
+    // MARK: - Initializer
     
     init(coreDataManager: CoreDataManager) {
         self.coreDataManager = coreDataManager
         self.bgReadingsAccessor = BgReadingsAccessor(coreDataManager: coreDataManager)
     }
     
-    public func processNewReading(lastConnectionStatusChangeTimeStamp: Date?) {
-        if sharedUserDefaults?.bool(forKey: "createCalendarEvent") == true {
-            createCalendarEvent(lastConnectionStatusChangeTimeStamp: lastConnectionStatusChangeTimeStamp)
-        }
+    // MARK: - Public Functions
+    
+    func processNewReading(lastConnectionStatusChangeTimeStamp: Date?) {
+        guard isDeliveryOn else { return }
+        createCalendarEventToStore()
     }
     
-    public func setCalendarDelivery(enabled: Bool) async {
-        sharedUserDefaults?.set(enabled, forKey: "createCalendarEvent")
-        if !enabled {
-            if EKEventStore.authorizationStatus(for: .event) == .authorized {
-                if let calendar = getCalendar() {
-                    deleteAllEvents(in: calendar)
-                } else {
-                    logger.error("No calendar found.")
-                }
-            } else {
-                logger.info("Calendar access is not authorized.")
-            }
-        } else {
-            await requestCalendarAccessIfNeeded()
-        }
+    func startCalendarDelivery() {
+        
+        isDeliveryOn = true
+        createCalendarEventToStore()
     }
     
-    private func createCalendarEvent(lastConnectionStatusChangeTimeStamp: Date?) {
-        guard EKEventStore.authorizationStatus(for: .event) == .authorized else {
-            logger.info("Calendar access is not authorized. Disabling calendar delivery.")
-            sharedUserDefaults?.set(false, forKey: "createCalendarEvent")
+    func stopCalendarDelivery() {
+   
+        isDeliveryOn = false
+        
+        guard let calendar = getCalendar(byTitle: calendarId) else {
+            trace("No suitable calendar found while stopping delivery.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
             return
         }
-        
-        guard let calendar = getCalendar() else {
-            logger.error("No calendar found.")
-            return
-        }
-        
-        if Int(Date().timeIntervalSince(timeStampLastProcessedReading)) < ((sharedUserDefaults?.integer(forKey: "calendarInterval") ?? 15) * 60 - 10) {
-            logger.info("Less than \(self.sharedUserDefaults?.integer(forKey: "calendarInterval") ?? 15) minutes since the last event, a new event will not be created.")
-            return
-        }
-        
-        let lastReading = bgReadingsAccessor.get2LatestBgReadings(minimumTimeIntervalInMinutes: 4.0)
-        
-        guard lastReading.count > 0 else {
-            logger.info("No new readings to process.")
-            return
-        }
-        
-        guard abs(lastReading[0].timeStamp.timeIntervalSinceNow) < 5 * 60 else {
-            logger.info("The last reading is older than 5 minutes.")
-            return
-        }
-        
+
         deleteAllEvents(in: calendar)
-        
-        let unitIsMgDl = UserDefaults.standard.bloodGlucoseUnitIsMgDl
-        var title = lastReading[0].unitizedString(unitIsMgDl: unitIsMgDl)
-        
-        let displayVisualIndicator = UserDefaults.standard.displayVisualIndicatorInCalendarEvent
-        if displayVisualIndicator {
-            var visualIndicator = ""
-            switch lastReading[0].bgRangeDescription() {
-            case .inRange:
-                visualIndicator = ConstantsCalendar.visualIndicatorInRange
-            case .notUrgent:
-                visualIndicator = ConstantsCalendar.visualIndicatorNotUrgent
-            case .urgent:
-                visualIndicator = ConstantsCalendar.visualIndicatorUrgent
-            }
-            title = visualIndicator + " " + title
+    }
+ 
+    func configureDelivery(
+        calendarInterval: Int,
+        bloodGlucoseUnitIsMgDl: Bool,
+        displayVisualIndicatorInCalendarEvent: Bool,
+        displayTrendInCalendarEvent: Bool,
+        displayDeltaInCalendarEvent: Bool,
+        displayUnitInCalendarEvent: Bool,
+        calendarId: String?,
+        lastConnectionStatusChangeTimeStamp: Date?
+    ) {
+        self.calendarInterval = calendarInterval
+        self.bloodGlucoseUnitIsMgDl = bloodGlucoseUnitIsMgDl
+        self.displayVisualIndicatorInCalendarEvent = displayVisualIndicatorInCalendarEvent
+        self.displayTrendInCalendarEvent = displayTrendInCalendarEvent
+        self.displayDeltaInCalendarEvent = displayDeltaInCalendarEvent
+        self.displayUnitInCalendarEvent = displayUnitInCalendarEvent
+        self.calendarId = calendarId
+        self.lastConnectionStatusChangeTimeStamp = lastConnectionStatusChangeTimeStamp
+    }
+    
+    // MARK: - Private Functions
+    
+    private func createCalendarEventToStore() {
+        guard isDeliveryOn else {
+            trace("Delivery is off, no event will be created.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            return
         }
-        
-        let displayTrend = UserDefaults.standard.displayTrendInCalendarEvent
-        if !lastReading[0].hideSlope && displayTrend {
-            title = title + " " + lastReading[0].calendarSlopeArrow()
+
+        guard EKEventStore.authorizationStatus(for: .event) == .authorized else {
+            trace("No authorization for calendar access.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            return
         }
-        
-        let displayDelta = UserDefaults.standard.displayDeltaInCalendarEvent
-        let displayUnit = UserDefaults.standard.displayUnitInCalendarEvent
-        if displayDelta && lastReading.count > 1 {
-            title = title + " " + lastReading[0].unitizedDeltaString(
-                previousBgReading: lastReading[1],
-                showUnit: displayUnit,
-                highGranularity: true,
-                mgDl: unitIsMgDl)
-        } else if displayUnit {
-            title = title + " " + (unitIsMgDl ? Texts_Common.mgdl : Texts_Common.mmol)
+
+        guard let calendar = getCalendar(byTitle: calendarId) else {
+            trace("No suitable calendar found.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            return
+        }
+
+        let timeSinceLast = Int(Date().timeIntervalSince(timeStampLastProcessedReading))
+        if timeSinceLast < (calendarInterval * 60 - 10) {
+            trace("Less than %d minutes since last event. Not creating a new one.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info, calendarInterval)
+            return
+        }
+
+        let lastReading = bgReadingsAccessor.get2LatestBgReadings(minimumTimeIntervalInMinutes: 4.0)
+        guard lastReading.count > 0 else {
+            trace("No new readings to process.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            return
+        }
+
+        guard abs(lastReading[0].timeStamp.timeIntervalSinceNow) < 5 * 60 else {
+            trace("Latest reading is older than 5 minutes.", log: log, category: ConstantsLog.categoryCalendarManager, type: .info)
+            return
+        }
+
+        deleteAllEvents(in: calendar)
+
+        var title = lastReading[0].unitizedString(unitIsMgDl: bloodGlucoseUnitIsMgDl).description
+   
+        if (!lastReading[0].hideSlope && displayTrendInCalendarEvent) {
+            title = title + " " + lastReading[0].slopeArrow()
         }
         
         let event = EKEvent(eventStore: eventStore)
@@ -117,78 +131,44 @@ class CalendarManager: NSObject {
             try eventStore.save(event, span: .thisEvent)
             timeStampLastProcessedReading = lastReading[0].timeStamp
         } catch let error {
-            logger.error("Error saving event: \(error.localizedDescription)")
+            trace("Error while saving event: %{public}@", log: log, category: ConstantsLog.categoryCalendarManager, type: .error, error.localizedDescription)
         }
     }
     
-    private func getCalendar() -> EKCalendar? {
-        if let calendarIdInUserDefaults = sharedUserDefaults?.string(forKey: "calenderId") {
-            for calendar in eventStore.calendars(for: .event) {
-                if calendar.title == calendarIdInUserDefaults {
-                    return calendar
+    private func getCalendar(byTitle title: String?) -> EKCalendar? {
+        if let title = title {
+            for cal in eventStore.calendars(for: .event) {
+                if cal.title == title {
+                    return cal
                 }
             }
-        }
-        
-        if let defaultCalendar = eventStore.defaultCalendarForNewEvents {
-            sharedUserDefaults?.set(defaultCalendar.title, forKey: "calenderId")
-            return defaultCalendar
+            return eventStore.defaultCalendarForNewEvents
         } else {
-            logger.error("No default calendar for new events.")
-            return nil
+            return eventStore.defaultCalendarForNewEvents
         }
     }
     
     private func deleteAllEvents(in calendar: EKCalendar) {
-        let predicate = eventStore.predicateForEvents(withStart: Date(timeIntervalSinceNow: -24 * 3600), end: Date(), calendars: [calendar])
+        let predicate = eventStore.predicateForEvents(
+            withStart: Date(timeIntervalSinceNow: -24*3600),
+            end: Date(),
+            calendars: [calendar]
+        )
         
         let events = eventStore.events(matching: predicate)
         
         for event in events {
-            if let notes = event.notes, notes.contains(ConstantsCalendar.textInCreatedEvent) {
+            if let notes = event.notes, notes.contains(find: ConstantsCalendar.textInCreatedEvent) {
                 do {
                     try eventStore.remove(event, span: .thisEvent)
                 } catch let error {
-                    logger.error("Error deleting event: \(error.localizedDescription)")
+                    trace("Error removing event: %{public}@", log: log, category: ConstantsLog.categoryCalendarManager, type: .error, error.localizedDescription)
                 }
             }
         }
     }
     
-    private func requestCalendarAccessIfNeeded() async {
-        let status = EKEventStore.authorizationStatus(for: .event)
-        switch status {
-        case .notDetermined:
-            if Bundle.main.isExtension {
-                logger.error("Cannot request calendar access in an extension.")
-                return
-            }
-            do {
-                let granted = try await eventStore.requestAccess(to: .event)
-                if granted {
-                    logger.info("Calendar access has been authorized.")
-                } else {
-                    logger.error("Calendar access has been denied.")
-                }
-            } catch {
-                logger.error("Error requesting calendar access: \(error.localizedDescription)")
-            }
-        case .denied, .restricted:
-            logger.error("Calendar access has been denied.")
-        case .authorized:
-            logger.info("Calendar access is already authorized.")
-        case .fullAccess:
-            logger.info("Full Acces.")
-        case .writeOnly:
-            logger.info("Write only.")
-        @unknown default:
-            logger.error("Unknown authorization status.")
-        }
-    }
-}
-
-extension Bundle {
-    var isExtension: Bool {
-        return bundleURL.pathExtension == "appex"
+    private func trace(_ message: StaticString, log: OSLog, category: String, type: OSLogType, _ args: CVarArg...) {
+        os_log(message, log: log, type: type, args)
     }
 }

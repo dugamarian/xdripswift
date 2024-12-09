@@ -113,6 +113,23 @@ struct XDripWidgetAttributes: ActivityAttributes {
             }
         }
         
+        func bgTextColorForMinimal() -> Color {
+            if let bgReadingDate = bgReadingDate, let bgValueInMgDl = bgValueInMgDl {
+                if bgReadingDate > Date().addingTimeInterval(-ConstantsWidgetExtension.bgReadingDateStaleInMinutes) {
+                    if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
+                        return .red
+                    } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
+                        return .yellow
+                    } else {
+                        return .primary
+                    }
+                } else {
+                    return Color(white: colorTertiaryWhiteValue)
+                }
+            } else {
+                return Color(white: colorTertiaryWhiteValue)
+            }
+        }
         /// Delta text color dependant on the time since the last reading
         /// - Returns: a Color either white(ish) or gray
         func deltaChangeTextColor() -> Color {

@@ -154,17 +154,16 @@ struct LockScreenLiveActivityContentView: View {
                         Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
                             .font(.system(size: 38))
                             .fontWeight(.bold)
-                            .foregroundStyle(context.state.bgTextColor())
+                            .foregroundStyle(context.state.bgTextColorForMinimal())
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
                         Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
-                            .foregroundStyle(.colorTertiary)
+                            .foregroundStyle(.secondary)
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .fontWeight(.bold)
                             
                     }
                     Spacer()
@@ -183,8 +182,8 @@ struct LockScreenLiveActivityContentView: View {
                         Spacer()
                     }
      
-                    Text("Updated: \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
-                            .foregroundStyle(.gray)
+                    Text("Updated \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
+                        .foregroundStyle(.secondary)
                             .opacity(1)
                             .lineLimit(1)
                             .minimumScaleFactor(0.1)
@@ -192,8 +191,14 @@ struct LockScreenLiveActivityContentView: View {
                     }
                 
                 .activityBackgroundTint(.black)
+                       
                 .padding([.top, .bottom], 10)
                 .padding([.leading, .trailing], 55)
+                .privacySensitive()
+                .foregroundStyle(Color.primary)
+                .background(BackgroundStyle.background.opacity(0.8))
+                .activityBackgroundTint(.clear)
+                
 
             } else if context.state.liveActivityType == .normal {
                 HStack(spacing: 30) {
@@ -263,6 +268,7 @@ struct LockScreenLiveActivityContentView: View {
                         }
                     }
                 }
+                
                 .activityBackgroundTint(.black)
                 .padding(.top, 14)
                 .padding(.bottom, 12)
@@ -270,7 +276,7 @@ struct LockScreenLiveActivityContentView: View {
                 ZStack {
                     VStack(spacing: 0) {
                         HStack(alignment: .lastTextBaseline, spacing: 20) {
-                            // Glucose value and trend arrow
+                         
                             Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
                                 .font(.system(size: 32))
                                 .fontWeight(.bold)
