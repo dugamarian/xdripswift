@@ -435,18 +435,18 @@ class Trace {
             traceInfo.appendStringAndNewLine("    User agreement date: nil")
         }
                                              
-        traceInfo.appendStringAndNewLine("\nCalendar events settings:")
-        traceInfo.appendStringAndNewLine("    Create calendar events: " + UserDefaults.standard.createCalendarEvent.description)
-        if UserDefaults.standard.createCalendarEvent {
-            if let calendarId = UserDefaults.standard.calenderId {
-                traceInfo.appendStringAndNewLine("    Calendar to use: " + calendarId)
-            }
-            traceInfo.appendStringAndNewLine("    Display trend: " + UserDefaults.standard.displayTrendInCalendarEvent.description)
-            traceInfo.appendStringAndNewLine("    Display delta: " + UserDefaults.standard.displayDeltaInCalendarEvent.description)
-            traceInfo.appendStringAndNewLine("    Display unit: " + UserDefaults.standard.displayUnitInCalendarEvent.description)
-            traceInfo.appendStringAndNewLine("    Display visual indicator: " + UserDefaults.standard.displayVisualIndicatorInCalendarEvent.description)
-            traceInfo.appendStringAndNewLine("    Event interval: " + UserDefaults.standard.calendarInterval.description + " minutes")
-        }
+ //       traceInfo.appendStringAndNewLine("\nCalendar events settings:")
+ //       traceInfo.appendStringAndNewLine("    Create calendar events: " + UserDefaults.standard.createCalendarEvent.description)
+ //       if UserDefaults.standard.createCalendarEvent {
+ //           if let calendarId = UserDefaults.standard.calenderId {
+//                traceInfo.appendStringAndNewLine("    Calendar to use: " + calendarId)
+//            }
+//            traceInfo.appendStringAndNewLine("    Display trend: " + UserDefaults.standard.displayTrendInCalendarEvent.description)
+ //           traceInfo.appendStringAndNewLine("    Display delta: " + UserDefaults.standard.displayDeltaInCalendarEvent.description)
+//            traceInfo.appendStringAndNewLine("    Display unit: " + UserDefaults.standard.displayUnitInCalendarEvent.description)
+//            traceInfo.appendStringAndNewLine("    Display visual indicator: " + UserDefaults.standard.displayVisualIndicatorInCalendarEvent.description)
+ //           traceInfo.appendStringAndNewLine("    Event interval: " + UserDefaults.standard.calendarInterval.description + " minutes")
+  //      }
         
         traceInfo.appendStringAndNewLine("\nContact Image settings:")
         traceInfo.appendStringAndNewLine("    Enable contact image: " + UserDefaults.standard.enableContactImage.description)

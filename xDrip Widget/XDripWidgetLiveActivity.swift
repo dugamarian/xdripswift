@@ -154,7 +154,7 @@ struct LockScreenLiveActivityContentView: View {
                         Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
                             .font(.system(size: 38))
                             .fontWeight(.bold)
-                            .foregroundStyle(context.state.bgTextColorForMinimal())
+                            .foregroundStyle(context.state.bgTextColForMinimalView())
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -206,7 +206,7 @@ struct LockScreenLiveActivityContentView: View {
                         Text("\(context.state.bgValueStringInUserChosenUnit)\(context.state.trendArrow())")
                             .font(.system(size: 44))
                             .bold()
-                            .foregroundStyle(context.state.bgTextColor())
+                            .foregroundStyle(context.state.bgTextColForMinimalView())
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
                         
@@ -214,7 +214,7 @@ struct LockScreenLiveActivityContentView: View {
                             Text(context.state.deltaChangeStringInUserChosenUnit())
                                 .font(.system(size: 20))
                                 .fontWeight(.semibold)
-                                .foregroundStyle(context.state.deltaChangeTextColor())
+                                .foregroundStyle(.colorTertiary)
                                 .minimumScaleFactor(0.2)
                                 .lineLimit(1)
                             

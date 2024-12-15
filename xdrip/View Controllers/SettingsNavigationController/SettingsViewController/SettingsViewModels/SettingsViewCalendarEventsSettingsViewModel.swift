@@ -1,3 +1,4 @@
+/*
 import Foundation
 import UIKit
 import EventKit
@@ -85,7 +86,7 @@ class SettingsViewCalendarEventsSettingsViewModel: SettingsViewModelProtocol {
         
         switch setting {
             
-        case .createCalendarEvent:
+      case .createCalendarEvent:
             // if access to Calendar was previously denied by user, then show disclosure indicator, clicking the row will give info how user should authorize access
             // also if access is restricted
             
@@ -388,4 +389,4 @@ class SettingsViewCalendarEventsSettingsViewModel: SettingsViewModelProtocol {
         return false
     }
     
-}
+ }*/

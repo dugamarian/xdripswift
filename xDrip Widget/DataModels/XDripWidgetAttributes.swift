@@ -113,13 +113,13 @@ struct XDripWidgetAttributes: ActivityAttributes {
             }
         }
         
-        func bgTextColorForMinimal() -> Color {
+        func bgTextColForMinimalView() -> Color {
             if let bgReadingDate = bgReadingDate, let bgValueInMgDl = bgValueInMgDl {
                 if bgReadingDate > Date().addingTimeInterval(-ConstantsWidgetExtension.bgReadingDateStaleInMinutes) {
                     if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
                         return .red
                     } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
-                        return .yellow
+                        return .orange
                     } else {
                         return .primary
                     }
@@ -130,6 +130,8 @@ struct XDripWidgetAttributes: ActivityAttributes {
                 return Color(white: colorTertiaryWhiteValue)
             }
         }
+        
+   
         /// Delta text color dependant on the time since the last reading
         /// - Returns: a Color either white(ish) or gray
         func deltaChangeTextColor() -> Color {
@@ -220,18 +222,4 @@ struct XDripWidgetAttributes: ActivityAttributes {
     }
 }
 
-extension Color {
-    static let skyBlue = Color(red: 135/255, green: 206/255, blue: 235/255)
-    static let paleRed = Color(red: 255/255, green: 182/255, blue: 193/255)
-    static let softOrange = Color(red: 255/255, green: 165/255, blue: 0/255)
-    static let paleBlue = Color(red: 173/255, green: 216/255, blue: 230/255)
-    static let brightWhite = Color(red: 255/255, green: 255/255, blue: 255/255, opacity: 1.0)
-    static let paleTurquoise = Color(red: 64/255, green: 224/255, blue: 208/255)
-    static let softMagentaRed = Color(red: 255/255, green: 102/255, blue: 178/255)
-    static let rubyRed = Color(red: 155/255, green: 17/255, blue: 30/255)
-    static let magentaRed = Color(red: 255/255, green: 62/255, blue: 106/255)
-    static let appleBlue = Color(red: 14.0/255.0, green: 122.0/255.0, blue: 254.0/255.0)
-    static let paleYellow = Color(red: 255/255, green: 255/255, blue: 153/255)
-    static let paleGreen = Color(red: 12/255, green: 224/255, blue: 108/255)
-    static let screamingGreen = Color(red: 61/255, green: 255/255, blue: 139/255)
-}
+

@@ -63,7 +63,7 @@ final class SettingsViewController: UIViewController {
         case appleWatch
         
         /// Calendar event settings
-        case calendarEvents
+     //   case calendarEvents
         
         /// contact Image settings
         case contactImage
@@ -114,8 +114,8 @@ final class SettingsViewController: UIViewController {
                 return SettingsViewDevelopmentSettingsViewModel()
             case .appleWatch:
                 return SettingsViewAppleWatchSettingsViewModel()
-            case .calendarEvents:
-                return SettingsViewCalendarEventsSettingsViewModel()
+     //       case .calendarEvents:
+       //         return SettingsViewCalendarEventsSettingsViewModel()
             case .contactImage:
                 return SettingsViewContactImageSettingsViewModel()
 //            case .housekeeper:

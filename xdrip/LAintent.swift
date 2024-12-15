@@ -81,7 +81,7 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
 
         // Restart the live activity
     
-            LiveActivityManager.shared.runActivity(contentState: contentState, forceRestart: true)
+        LiveActivityManager.shared.restartActivityFromIntent(contentState: contentState)
         
 
         return .result()

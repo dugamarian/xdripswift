@@ -46,16 +46,16 @@
 "settingsviews_IntervalMessage" = "Minimum interval between two notifications, in minutes";
 
 /// Apple Watch Settings - text in row where create event is enabled or disabled 
-"createCalendarEvent" = "Create Calendar Events";
+//"createCalendarEvent" = "Create Calendar Events";
 
 /// Apple Watch Settings - text in row where user needs to say if unit should be displayed or not
-"displayUnitInCalendarEvent" = "Display Unit";
+//"displayUnitInCalendarEvent" = "Display Unit";
 
 /// about settings, section title
 "settingsviews_sectiontitleAbout" = "About %@";
 
 /// Apple Watch Settings - text in row where user needs to say if delta should be displayed or not
-"displayDeltaInCalendarEvent" = "Display Delta";
+//"displayDeltaInCalendarEvent" = "Display Delta";
 
 /// dexcom share settings, pop up that asks user to enter dexcom share account name
 "settingsviews_giveDexcomShareAccountName" = "Enter Dexcom Share Account Name";

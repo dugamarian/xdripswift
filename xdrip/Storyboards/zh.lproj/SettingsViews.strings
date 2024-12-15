@@ -64,7 +64,7 @@
 "settingsviews_IntervalMessage" = "Minimum interval between two notifications, in minutes";
 
 /// Apple Watch Settings - text in row where create event is enabled or disabled 
-"createCalendarEvent" = "Create Calendar Events";
+//"createCalendarEvent" = "Create Calendar Events";
 
 /// in Settings, section title for Trace
 "sectionTitleTrace" = "Issue Reporting";
