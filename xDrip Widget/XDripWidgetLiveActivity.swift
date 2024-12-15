@@ -70,7 +70,7 @@ struct XDripWidgetLiveActivity: Widget {
             .widgetURL(URL(string: "xdripswift"))
             .keylineTint(context.state.bgTextColor())
         }
-        .extraFamilies()  // Method to add supplemental families
+        .extraFamilies()  
     }
 }
 
