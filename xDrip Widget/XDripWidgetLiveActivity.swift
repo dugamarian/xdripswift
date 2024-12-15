@@ -400,7 +400,7 @@ struct SmartStackLiveActivityContentView: View {
                 
                 HStack(spacing: 5) {
                     Text(context.state.bgValueStringInUserChosenUnit)
-                        .foregroundColor(.brightWhite)
+                        .foregroundColor(.white)
                         .font(.system(size: 90))
                         .minimumScaleFactor(0.5)
                         .padding(.bottom, 20)
