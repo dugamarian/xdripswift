@@ -1,7 +1,6 @@
 import AppIntents
 import EventKit
 
-@available(iOS 16.0, *)
 struct SetCalendarDeliveryIntent: AppIntent {
     static var title: LocalizedStringResource = "Start Calendar Delivery"
     
@@ -53,7 +52,6 @@ struct SetCalendarDeliveryIntent: AppIntent {
     }
 }
 
-@available(iOS 16.0, *)
 struct StopCalendarDeliveryIntent: AppIntent {
     static var title: LocalizedStringResource = "Stop Calendar Delivery"
     static var description = IntentDescription(
