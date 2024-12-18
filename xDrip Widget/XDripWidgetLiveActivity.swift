@@ -206,7 +206,7 @@ struct LockScreenLiveActivityContentView: View {
                         Text("\(context.state.bgValueStringInUserChosenUnit)\(context.state.trendArrow())")
                             .font(.system(size: 44))
                             .bold()
-                            .foregroundStyle(context.state.bgTextColForMinimalView())
+                            .foregroundStyle(context.state.bgTextColor())
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
                         
