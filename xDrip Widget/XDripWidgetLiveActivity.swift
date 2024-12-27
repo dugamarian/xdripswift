@@ -10,13 +10,13 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
+
 func isAlarm(glucoseValue: Double, context: ActivityViewContext<XDripWidgetAttributes>) -> Bool {
     return (glucoseValue < Double(context.state.lowLimitInMgDl)) || (glucoseValue > Double(context.state.highLimitInMgDl))
 }
 
 struct XDripWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
-        // Configuration for the activity widget
         ActivityConfiguration(for: XDripWidgetAttributes.self) { context in
             LockScreenLiveActivityView(context: context)
         } dynamicIsland: { context in
@@ -51,12 +51,6 @@ struct XDripWidgetLiveActivity: Widget {
                         .foregroundStyle(context.state.deltaChangeTextColor())
                         .minimumScaleFactor(0.1)
                     
-                    Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                        .foregroundStyle(.gray)
-                        .opacity(1)
-                        .lineLimit(1)
-                        .font(.system(size: 13))
-                        .frame(maxWidth: .infinity, alignment: .center)
                 }
             } minimal: {
                 VStack(spacing: 2) {
@@ -142,10 +136,12 @@ struct XDripWidgetLiveActivity_Previews: PreviewProvider {
     }
 }
 
+
 struct LockScreenLiveActivityContentView: View {
     @Environment(\.colorScheme) var colorScheme
     @State var context: ActivityViewContext<XDripWidgetAttributes>
-
+   
+   
     var body: some View {
         VStack {
             if context.state.liveActivityType == .minimal {
@@ -167,22 +163,9 @@ struct LockScreenLiveActivityContentView: View {
                             
                     }
                     Spacer()
-                    
-                    if context.state.warnUserToOpenApp {
-                        Text("Open app...")
-                            .font(.footnote)
-                            .bold()
-                            .foregroundStyle(.black)
-                            .multilineTextAlignment(.center)
-                            .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
-                            .background(.cyan)
-                            .opacity(0.9)
-                            .cornerRadius(10)
-                        
-                        Spacer()
-                    }
+                
      
-                    Text("Updated \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
+                    Text("Updated \(Text(context.state.bgReadingDate ?? Date(), style: .relative))")
                         .foregroundStyle(.secondary)
                             .opacity(1)
                             .lineLimit(1)
@@ -202,76 +185,76 @@ struct LockScreenLiveActivityContentView: View {
 
             } else if context.state.liveActivityType == .normal {
                 HStack(spacing: 30) {
-                    VStack(spacing: 0) {
-                        Text("\(context.state.bgValueStringInUserChosenUnit)\(context.state.trendArrow())")
-                            .font(.system(size: 44))
-                            .bold()
-                            .foregroundStyle(context.state.bgTextColor())
-                            .minimumScaleFactor(0.1)
-                            .lineLimit(1)
-                        
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(context.state.deltaChangeStringInUserChosenUnit())
-                                .font(.system(size: 20))
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.colorTertiary)
-                                .minimumScaleFactor(0.2)
-                                .lineLimit(1)
-                            
-                            Text(context.state.bgUnitString)
-                                .font(.system(size: 15))
-                                .foregroundStyle(.colorTertiary)
-                                .minimumScaleFactor(0.2)
-                                .lineLimit(1)
-                            
-                            Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                                .foregroundStyle(.colorTertiary)
-                                .opacity(1)
-                                .lineLimit(1)
-                                .font(.system(size: 15))
-                        }
-                    }
-        
-                    ZStack {
-                        GlucoseChartView(
-                            glucoseChartType: .liveActivity,
-                            bgReadingValues: context.state.bgReadingValues,
-                            bgReadingDates: context.state.bgReadingDates,
-                            isMgDl: context.state.isMgDl,
-                            urgentLowLimitInMgDl: context.state.urgentLowLimitInMgDl,
-                            lowLimitInMgDl: context.state.lowLimitInMgDl,
-                            highLimitInMgDl: context.state.highLimitInMgDl,
-                            urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
-                            liveActivityType: .normal,
-                            hoursToShowScalingHours: nil,
-                            glucoseCircleDiameterScalingHours: nil,
-                            overrideChartHeight: nil,
-                            overrideChartWidth: nil,
-                            highContrast: nil
-                        )
-                  
-                        if context.state.warnUserToOpenApp {
-                            VStack(alignment: .center) {
-                                Spacer()
-                                Text("Open \(ConstantsHomeView.applicationName)")
-                                    .font(.footnote)
-                                    .bold()
-                                    .foregroundStyle(.black)
-                                    .multilineTextAlignment(.center)
-                                    .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
-                                    .background(.cyan)
-                                    .opacity(0.9)
-                                    .cornerRadius(10)
-                                Spacer()
-                            }
-                            .padding(8)
-                        }
-                    }
-                }
-                
-                .activityBackgroundTint(.black)
-                .padding(.top, 14)
-                .padding(.bottom, 12)
+                                   VStack(spacing: 0) {
+                                       Text("\(context.state.bgValueStringInUserChosenUnit)\(context.state.trendArrow())")
+                                           .font(.system(size: 44))
+                                           .bold()
+                                           .foregroundStyle(context.state.bgTextColor())
+                                           .minimumScaleFactor(0.1)
+                                           .lineLimit(1)
+                                       
+                                       HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                           Text(context.state.deltaChangeStringInUserChosenUnit())
+                                               .font(.system(size: 20))
+                                               .fontWeight(.semibold)
+                                               .foregroundStyle(.colorTertiary)
+                                               .minimumScaleFactor(0.2)
+                                               .lineLimit(1)
+                                           
+                                           Text(context.state.bgUnitString)
+                                               .font(.system(size: 15))
+                                               .foregroundStyle(.colorTertiary)
+                                               .minimumScaleFactor(0.2)
+                                               .lineLimit(1)
+                                           
+                                           Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
+                                               .foregroundStyle(.colorTertiary)
+                                               .opacity(1)
+                                               .lineLimit(1)
+                                               .font(.system(size: 15))
+                                       }
+                                   }
+                       
+                                   ZStack {
+                                       GlucoseChartView(
+                                           glucoseChartType: .liveActivity,
+                                           bgReadingValues: context.state.bgReadingValues,
+                                           bgReadingDates: context.state.bgReadingDates,
+                                           isMgDl: context.state.isMgDl,
+                                           urgentLowLimitInMgDl: context.state.urgentLowLimitInMgDl,
+                                           lowLimitInMgDl: context.state.lowLimitInMgDl,
+                                           highLimitInMgDl: context.state.highLimitInMgDl,
+                                           urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
+                                           liveActivityType: .normal,
+                                           hoursToShowScalingHours: nil,
+                                           glucoseCircleDiameterScalingHours: nil,
+                                           overrideChartHeight: nil,
+                                           overrideChartWidth: nil,
+                                           highContrast: nil
+                                       )
+                                 
+                                       if context.state.warnUserToOpenApp {
+                                           VStack(alignment: .center) {
+                                               Spacer()
+                                               Text("Open \(ConstantsHomeView.applicationName)")
+                                                   .font(.footnote)
+                                                   .bold()
+                                                   .foregroundStyle(.black)
+                                                   .multilineTextAlignment(.center)
+                                                   .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
+                                                   .background(.cyan)
+                                                   .opacity(0.9)
+                                                   .cornerRadius(10)
+                                               Spacer()
+                                           }
+                                           .padding(8)
+                                       }
+                                   }
+                               }
+                               
+                               .activityBackgroundTint(.black)
+                               .padding(.top, 14)
+                               .padding(.bottom, 12)
             } else {
                 ZStack {
                     VStack(spacing: 0) {
@@ -293,6 +276,7 @@ struct LockScreenLiveActivityContentView: View {
                                     .fontWeight(.semibold)
                                     .foregroundStyle(context.state.deltaChangeTextColor())
                                     .lineLimit(1)
+                                    
                                 Text(context.state.bgUnitString)
                                     .font(.system(size: 28))
                                     .foregroundStyle(.colorTertiary)
@@ -302,7 +286,7 @@ struct LockScreenLiveActivityContentView: View {
                         .padding(.top, 8)
                         .padding(.bottom, 2)
                         .padding([.leading, .trailing], 15)
-               
+                        
                         GlucoseChartView(
                             glucoseChartType: .liveActivity,
                             bgReadingValues: context.state.bgReadingValues,
@@ -321,16 +305,17 @@ struct LockScreenLiveActivityContentView: View {
                         )
                    
                         HStack {
-                            Text(context.state.dataSourceDescription)
+                            Text("Updated \(Text(context.state.bgReadingDate ?? Date(), style: .relative)) ago")
                                 .font(.caption)
-                                .bold()
                                 .foregroundStyle(.colorSecondary)
                             
                             Spacer()
                             
-                            Text("Last reading at \(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")")
+                            Text(context.state.dataSourceDescription)
                                 .font(.caption)
-                                .foregroundStyle(.colorTertiary)
+                                .bold()
+                                .foregroundStyle(.colorSecondary)
+  
                         }
                         .padding(.top, 6)
                         .padding(.bottom, 10)
@@ -338,20 +323,6 @@ struct LockScreenLiveActivityContentView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(0)
-             
-                    if context.state.warnUserToOpenApp {
-                        VStack(alignment: .center) {
-                            Text("Please open \(ConstantsHomeView.applicationName)")
-                                .font(.footnote)
-                                .bold()
-                                .foregroundStyle(.black)
-                                .multilineTextAlignment(.center)
-                                .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
-                                .background(.cyan)
-                                .opacity(0.9)
-                                .cornerRadius(10)
-                        }
-                    }
                 }
                 .activityBackgroundTint(.black)
             }
@@ -367,65 +338,118 @@ struct EarlierLockScreenLiveActivityContentView: View {
     }
 }
 
+    
 @available(iOS 18, *)
 struct SmartStackLiveActivityContentView: View {
+    @Environment(\.widgetFamily) var activityFamily
     @Environment(\.colorScheme) var colorScheme
     @State var context: ActivityViewContext<XDripWidgetAttributes>
-    
+
     var body: some View {
-        ZStack {
-            context.state.backgroundWidgetColor()
-                .ignoresSafeArea()
-            
-            VStack {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
+    
+        if context.state.liveActivityType == .minimal {
+            ZStack {
+                context.state.backgroundWidgetColor()
+                    .ignoresSafeArea()
+                
+                VStack {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(context.state.deltaChangeStringInUserChosenUnit()) \(context.state.bgUnitString)")
+                                .minimumScaleFactor(0.2)
+                                .lineLimit(1)
+                                .padding(.top, 10)
+                            
+                        }
+                        
+                        Text(context.state.bgReadingDate ?? Date(), style: .relative)
+                            .font(.system(size: 15))
+                            .foregroundStyle(.primary)
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
                             .padding(.top, 10)
-                       
                     }
-                    Spacer()
-                    Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                        .font(.system(size: 15))
-                        .foregroundStyle(.primary)
-                        .minimumScaleFactor(0.2)
-                        .lineLimit(1)
-                        .padding(.top, 10)
-                }
-                .padding([.horizontal, .top], 10)
-                
-           //     Spacer()
-                
-                HStack(spacing: 5) {
-                    Text(context.state.bgValueStringInUserChosenUnit)
-                        .foregroundColor(.white)
-                        .font(.system(size: 90))
-                        .minimumScaleFactor(0.5)
-                        .padding(.bottom, 20)
-                       
-                    
-                    Text(context.state.trendArrow())
-                        .font(.system(size: 25))
-                        .lineLimit(1)
-                        .padding(.bottom, 25)
+                    .padding([.horizontal, .top], 10)
+  
+                    HStack(spacing: 5) {
+                        Text(context.state.bgValueStringInUserChosenUnit)
+                            .foregroundColor(.white)
+                            .font(.system(size: 90))
+                            .minimumScaleFactor(0.5)
+                            .padding(.bottom, 20)
                         
+                        
+                        Text(context.state.trendArrow())
+                            .font(.system(size: 25))
+                            .lineLimit(1)
+                            .padding(.bottom, 25)
+                        
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                
-                Spacer()
             }
+        } else {
+            ZStack {
+                GeometryReader { geo in
+                    VStack(spacing: 0) {
+                        HStack(alignment: .lastTextBaseline, spacing: 10) {
+                            Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
+                                .font(.system(size: activityFamily.toSidebarRowSize == .small ? 18 : 22))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(context.state.bgTextColor())
+                                .lineLimit(1)
+                               
+                       
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                Text(context.state.deltaChangeStringInUserChosenUnit())
+                                    .font(.system(size: activityFamily.toSidebarRowSize == .small ? 12 : 18))
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(context.state.deltaChangeTextColor())
+                                    .lineLimit(1)
+                           
+                                Text(context.state.bgReadingDate ?? Date(), style: .relative)
+                                    .font(.system(size: activityFamily.toSidebarRowSize == .small ? 12 : 18))
+                                    .font(.caption)
+                                    .foregroundStyle(Color.primary)
+                                
+                            }
+                        }
+                        .padding(.bottom, activityFamily.toSidebarRowSize == .small ? 0 : 1)
+                        .padding([.leading, .trailing], 10)
+        
+                        GlucoseChartView(
+                            glucoseChartType: .widgetAccessoryRectangular,
+                            bgReadingValues: context.state.bgReadingValues,
+                            bgReadingDates: context.state.bgReadingDates,
+                            isMgDl: context.state.isMgDl,
+                            urgentLowLimitInMgDl: context.state.urgentLowLimitInMgDl,
+                            lowLimitInMgDl: context.state.lowLimitInMgDl,
+                            highLimitInMgDl: context.state.highLimitInMgDl,
+                            urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
+                            liveActivityType: nil,
+                            hoursToShowScalingHours: 6,
+                            glucoseCircleDiameterScalingHours: 1.7,
+                            overrideChartHeight: nil, // geo.size.height * 0.50,
+                            overrideChartWidth:  geo.size.width,
+                            highContrast: nil
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .activityBackgroundTint(.black)
         }
     }
 }
+
 @available(iOS 18.0, *)
 struct NewerLockScreenLiveActivityContentView: View {
-    @Environment(\.activityFamily) var activityFamily // Detects the size/family of the activity
+    @Environment(\.activityFamily) var activityFamily 
     @State var context: ActivityViewContext<XDripWidgetAttributes>
     
     var body: some View {
-        // Adjust content based on the widget size (small, medium, etc.)
         switch activityFamily {
         case .small:
             SmartStackLiveActivityContentView(context: context)
@@ -448,3 +472,54 @@ struct LockScreenLiveActivityView: View {
         }
     }
 }
+
+extension WidgetFamily {
+    var toSidebarRowSize: SidebarRowSize {
+        switch self {
+        case .systemSmall:  return .small
+        case .systemMedium: return .medium
+        case .systemLarge:  return .large
+        default:            return .medium
+        }
+    }
+}
+
+extension Date {
+    func minutesAgo() -> String {
+        let minutes = Int(-self.timeIntervalSinceNow / 60)
+        if minutes < 1 {
+            return "0 mins ago"
+        } else if minutes == 1 {
+            return "1 min ago"
+        } else {
+            return "\(minutes) mins ago"
+        }
+    }
+}
+
+
+struct MinutesAgoTimer: View {
+    let date: Date?
+    @State private var currentTime = Date()
+    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    
+    func minutesAgo(from date: Date) -> String {
+        let minutes = Int(-date.timeIntervalSinceNow / 60)
+        if minutes < 1 {
+            return "just now"
+        } else if minutes == 1 {
+            return "1 min ago"
+        } else {
+            return "\(minutes) mins ago"
+        }
+    }
+    
+    var body: some View {
+        Text(date.map { minutesAgo(from: $0) } ?? "--")
+            .onReceive(timer) { _ in
+                currentTime = Date()
+            }
+    }
+}
+
+

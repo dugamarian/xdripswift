@@ -88,6 +88,9 @@ struct CalendarEntity: AppEntity {
 struct CalendarQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [CalendarEntity] {
         let eventStore = EKEventStore()
+
+        try await requestCalendarAccess(for: eventStore)
+ 
         let allCalendars = eventStore.calendars(for: .event)
         let filtered = allCalendars.filter { identifiers.contains($0.calendarIdentifier) }
         return filtered.map { CalendarEntity(id: $0.calendarIdentifier, name: $0.title) }
@@ -95,7 +98,32 @@ struct CalendarQuery: EntityQuery {
     
     func suggestedEntities() async throws -> [CalendarEntity] {
         let eventStore = EKEventStore()
+
+        try await requestCalendarAccess(for: eventStore)
+
         let allCalendars = eventStore.calendars(for: .event)
         return allCalendars.map { CalendarEntity(id: $0.calendarIdentifier, name: $0.title) }
+    }
+ 
+    private func requestCalendarAccess(for eventStore: EKEventStore) async throws {
+        let status = EKEventStore.authorizationStatus(for: .event)
+        
+        guard status != .authorized else { return }
+        
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            eventStore.requestAccess(to: .event) { granted, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if granted {
+                
+                    continuation.resume(returning: ())
+                } else {
+                    let refusalError = NSError(domain: "CalendarAccess", code: 1, userInfo: [
+                        NSLocalizedDescriptionKey: "User did not grant access to calendar."
+                    ])
+                    continuation.resume(throwing: refusalError)
+                }
+            }
+        }
     }
 }

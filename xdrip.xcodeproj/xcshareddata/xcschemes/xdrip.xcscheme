@@ -20,6 +20,62 @@
                ReferencedContainer = "container:xdrip.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "479359842B88B95A007D3CEE"
+               BuildableName = "xDrip Watch Complication Extension.appex"
+               BlueprintName = "xDrip Watch Complication Extension"
+               ReferencedContainer = "container:xdrip.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4716A4EC2B406C3D00419052"
+               BuildableName = "xDrip Widget Extension.appex"
+               BlueprintName = "xDrip Widget Extension"
+               ReferencedContainer = "container:xdrip.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "47CD64112BE9506C002BDA68"
+               BuildableName = "xDrip Notification Context Extension.appex"
+               BlueprintName = "xDrip Notification Context Extension"
+               ReferencedContainer = "container:xdrip.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "47A6ABDE2B790CC60047A4BA"
+               BuildableName = "xDrip Watch App.app"
+               BlueprintName = "xDrip Watch App"
+               ReferencedContainer = "container:xdrip.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

@@ -1,35 +1,57 @@
 //
-//  WatchModel.swift
+//  WatchStateModel.swift
 //  xDrip Watch App
 //
 //  Created by Paul Plant on 11/2/24.
 //  Copyright © 2024 Johan Degraeve. All rights reserved.
 //
 
+import UserNotifications
 import Combine
 import Foundation
 import SwiftUI
 import WatchConnectivity
 import WidgetKit
+import WatchKit // Import necesar pentru WKExtendedRuntimeSession
 
-/// holds, the watch state and allows updates and computed properties/variables to be generated for the different views that use it
+/// holds the watch state and allows updates and computed properties/variables to be generated for the different views that use it
 /// also used to update the ComplicationSharedUserDefaultsModel in the app group so that the complication can access the data
-final class WatchStateModel: NSObject, ObservableObject {
+final class WatchStateModel: NSObject, ObservableObject, UNUserNotificationCenterDelegate, WKApplicationDelegate, WKExtendedRuntimeSessionDelegate {
     
-    /// the Watch Connectivity session
+    // MARK: - Watch Connectivity
     var session: WCSession
     
-    // set timer to automatically refresh the view
-    // https://www.hackingwithswift.com/quick-start/swiftui/how-to-use-a-timer-with-swiftui
+    // Timer pentru refresh UI
     let timer = Timer.publish(every: 1, tolerance: 0.5, on: .main, in: .common).autoconnect()
     @Published var timerControlDate = Date()
     
+    // Valorile BG
     var bgReadingValues: [Double] = []
     var bgReadingDates: [Date] = []
     var bgReadingDatesAsDouble: [Double] = []
     
-//    @Published var updatedDatesString: String = ""
+    // MARK: - Extended Runtime Session
+    var extendedSession: WKExtendedRuntimeSession!
     
+    // MARK: - Init
+    init(session: WCSession = .default) {
+        self.session = session
+        super.init()
+        
+        // Set delegate-ul pentru WCSession
+        session.delegate = self
+        session.activate()
+        
+        // Inițializează extendedSession, dar NU o pornim încă.
+        extendedSession = WKExtendedRuntimeSession()
+        extendedSession.delegate = self
+    }
+    
+    // MARK: - Handle background tasks (dacă folosești scenariul cu WKRefreshBackgroundTask)
+   
+    
+  
+    // MARK: - Public Published vars
     @Published var isMgDl: Bool = true
     @Published var slopeOrdinal: Int = 2
     @Published var deltaValueInUserUnit: Double = 0
@@ -60,29 +82,17 @@ final class WatchStateModel: NSObject, ObservableObject {
     @Published var requestingDataIconColor: Color = ConstantsAppleWatch.requestingDataIconColorInactive
     @Published var lastComplicationUpdateTimeStamp: Date = .distantPast
     
-    // we use the following to record when the user has manually requested a state update on each view so that we can trigger the animation on just this view
-    // this is to prevent the UI animating "pending animations" when we switch view tabs
     @Published var updateBigNumberViewDate: Date = Date()
     @Published var updateMainViewDate: Date = Date()
     
-    init(session: WCSession = .default) {
-        self.session = session
-        super.init()
-        
-        session.delegate = self
-        session.activate()
-    }
     
-    // MARK: - Functions to provide context data to populate the views
     
-    /// the latest BG reading value in the array as a double
-    /// - Returns: an optional double with the bg value in mg/dL if it exists
+    // MARK: - Alte funcții
+    
     func bgValueInMgDl() -> Double? {
         return bgReadingValues.isEmpty ? nil : bgReadingValues[0]
     }
     
-    /// return the latest BG value in the user's chosen unit as a string
-    /// - Returns: a string with bgValueInMgDl() converted into the user unit
     func bgValueStringInUserChosenUnit() -> String {
         if let bgReadingDate = bgReadingDate(), let bgValueInMgDl = bgValueInMgDl(), bgReadingDate > Date().addingTimeInterval(-60 * 20) {
             return bgReadingValues.isEmpty ? (isMgDl ? "---" : "-.-") : bgValueInMgDl.mgDlToMmolAndToString(mgDl: isMgDl)
@@ -91,20 +101,14 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
     }
     
-    /// the timestamp of the latest BG reading value in the array
-    /// - Returns: an optional date
     func bgReadingDate() -> Date? {
         return bgReadingDates.isEmpty ? nil : bgReadingDates.first
     }
     
-    /// returns the localized string of mg/dL or mmol/L
-    /// - Returns: string representation of mg/dL or mmol/L
     func bgUnitString() -> String {
         return isMgDl ? Texts_Common.mgdl : Texts_Common.mmol
     }
     
-    /// Blood glucose color dependant on the user defined limit values and also on if it is a recent value
-    /// - Returns: a Color object either red, yellow or green
     func bgTextColor() -> Color {
         if let bgReadingDate = bgReadingDate(), bgReadingDate > Date().addingTimeInterval(-60 * 7), let bgValueInMgDl = bgValueInMgDl() {
             if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
@@ -119,9 +123,6 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
     }
     
-    /// returns the minutes ago string of the last updated time
-    /// check if more than 1 hour has passed. If so, then the amount of text to show would be too much so return the shorter version
-    /// - Returns: string representation of last reading time as "x mins ago"
     func lastUpdatedMinsAgoString() -> String {
         if let bgReadingDate = bgReadingDate() {
             let diffComponents = Calendar.current.dateComponents([.hour], from: bgReadingDate, to: Date())
@@ -136,8 +137,6 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
     }
     
-    /// Color dependant on how long ago the last BG reading was
-    /// - Returns: a Color either normal (gray) or yellow/red if the reading was several minutes ago and hasn't been updated
     func lastUpdatedTimeColor() -> Color {
         if let bgReadingDate = bgReadingDate(), bgReadingDate > Date().addingTimeInterval(-60 * 7) {
             return .colorSecondary
@@ -150,61 +149,46 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
     }
     
-    ///  returns a string holding the trend arrow
-    /// - Returns: trend arrow string (i.e.  "↑")
     func trendArrow() -> String {
         if let bgReadingDate = bgReadingDate(), bgReadingDate > Date().addingTimeInterval(-60 * 20) {
             switch slopeOrdinal {
-            case 7:
-                return "\u{2193}\u{2193}" // ↓↓
-            case 6:
-                return "\u{2193}" // ↓
-            case 5:
-                return "\u{2198}" // ↘
-            case 4:
-                return "\u{2192}" // →
-            case 3:
-                return "\u{2197}" // ↗
-            case 2:
-                return "\u{2191}" // ↑
-            case 1:
-                return "\u{2191}\u{2191}" // ↑↑
-            default:
-                return ""
+            case 7: return "\u{2193}\u{2193}" // ↓↓
+            case 6: return "\u{2193}"         // ↓
+            case 5: return "\u{2198}"         // ↘
+            case 4: return "\u{2192}"         // →
+            case 3: return "\u{2197}"         // ↗
+            case 2: return "\u{2191}"         // ↑
+            case 1: return "\u{2191}\u{2191}" // ↑↑
+            default: return ""
             }
         } else {
             return ""
         }
     }
     
-    /// convert the optional delta change int (in mg/dL) to a formatted change value in the user chosen unit making sure all zero values are shown as a positive change to follow Nightscout convention
-    /// - Returns: a string holding the formatted delta change value (i.e. +0.4 or -6)
     func deltaChangeStringInUserChosenUnit() -> String {
         if let bgReadingDate = bgReadingDate(), bgReadingDate > Date().addingTimeInterval(-60 * 20) {
-            let deltaValueAsString = isMgDl ? deltaValueInUserUnit.mgDlToMmolAndToString(mgDl: isMgDl) : deltaValueInUserUnit.mmolToString()
+            let deltaValueAsString = isMgDl ? deltaValueInUserUnit.mgDlToMmolAndToString(mgDl: isMgDl)
+                                            : deltaValueInUserUnit.mmolToString()
             
             var deltaSign: String = ""
-            
             if deltaValueInUserUnit > 0 {
                 deltaSign = "+"
             }
             
-            // quickly check "value" and prevent "-0mg/dl" or "-0.0mmol/l" being displayed
-            // show unitized zero deltas as +0 or +0.0 as per Nightscout format
-            return deltaValueInUserUnit == 0.0 ? (isMgDl ? "+0" : "+0.0") : (deltaSign + deltaValueAsString)
+            return deltaValueInUserUnit == 0.0
+                ? (isMgDl ? "+0" : "+0.0")
+                : (deltaSign + deltaValueAsString)
         } else {
             return "-"
         }
     }
     
-    /// function to calculate the sensor progress value and return a text color to be used by the view
-    /// - Returns: progress: the % progress between 0 and 1, textColor:
     func activeSensorProgress() -> (progress: Float, textColor: Color) {
         if sensorAgeInMinutes > 0 {
             let sensorTimeLeftInMinutes = sensorMaxAgeInMinutes - sensorAgeInMinutes
             let progress = Float(1 - (sensorTimeLeftInMinutes / sensorMaxAgeInMinutes))
             
-            // irrespective of all the above, if the current sensor age is over the max age, then just set everything to the expired colour to make it clear
             if sensorTimeLeftInMinutes < 0 {
                 return (1.0, ConstantsHomeView.sensorProgressExpiredSwiftUI)
             } else if sensorTimeLeftInMinutes <= ConstantsHomeView.sensorProgressViewUrgentInMinutes {
@@ -219,27 +203,22 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
     }
     
-    /// check when the last follower connection was and compare that to the actual time
-    /// - Returns: image and color of the correct follower connection status
     func getFollowerConnectionNetworkStatus() -> (image: Image, color: Color) {
-            if timeStampOfLastFollowerConnection > Date().addingTimeInterval(-Double(secondsUntilFollowerDisconnectWarning)) {
-                return(Image(systemName: "network"), .green)
+        if timeStampOfLastFollowerConnection > Date().addingTimeInterval(-Double(secondsUntilFollowerDisconnectWarning)) {
+            return (Image(systemName: "network"), .green)
+        } else {
+            if followerBackgroundKeepAliveType != .disabled {
+                return (Image(systemName: "network.slash"), .red)
             } else {
-                if followerBackgroundKeepAliveType != .disabled {
-                    return(Image(systemName: "network.slash"), .red)
-                } else {
-                    // if keep-alive is disabled, then this will never show a constant server connection so just "disable"
-                    // the icon when not recent. It would be incorrect to show a red error.
-                    return(Image(systemName: "network.slash"), .gray)
-                }
+                return (Image(systemName: "network.slash"), .gray)
             }
+        }
     }
     
-    /// check when the last heartbeat connection was and compare that to the actual time
-    /// if no heartbeat, just return the standard gray colour for the keep alive type icon
     func getFollowerBackgroundKeepAliveColor() -> Color {
         if followerBackgroundKeepAliveType == .heartbeat {
-            if let timeDifferenceInSeconds = Calendar.current.dateComponents([.second], from: timeStampOfLastHeartBeat, to: Date()).second, timeDifferenceInSeconds > secondsUntilHeartBeatDisconnectWarning {
+            if let timeDifferenceInSeconds = Calendar.current.dateComponents([.second], from: timeStampOfLastHeartBeat, to: Date()).second,
+               timeDifferenceInSeconds > secondsUntilHeartBeatDisconnectWarning {
                 return .red
             } else {
                 return .green
@@ -249,13 +228,11 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
     }
     
-    /// request a state update from the iOS companion app
     func requestWatchStateUpdate() {
         guard session.activationState == .activated else {
             session.activate()
             return
         }
-        // change the text, this must be done in the main thread but only do it if the watch app is reachable
         if session.isReachable {
             DispatchQueue.main.async {
                 self.requestingDataIconColor = ConstantsAppleWatch.requestingDataIconColorPending
@@ -269,12 +246,8 @@ final class WatchStateModel: NSObject, ObservableObject {
             }
         }
     }
-        
-    /// used to return values and colors used by a SwiftUI gauge view
-    /// - Returns: minValue/maxValue - used to define the limits of the gauge. nilValue - used if there is currently no data present (basically puts the gauge at the 50% mark). gaugeGradient - the color ranges used
+    
     func gaugeModel() -> (minValue: Double, maxValue: Double, nilValue: Double, gaugeGradient: Gradient) {
-        
-        // now we've got the values, if there is no recent reading, return a gray gradient
         if let bgReadingDate = bgReadingDate(), bgReadingDate < Date().addingTimeInterval(-60 * 7) {
             return (0, 1, 0.5, Gradient(colors: [.gray]))
         }
@@ -283,8 +256,6 @@ final class WatchStateModel: NSObject, ObservableObject {
         var maxValue: Double = highLimitInMgDl
         var colorArray = [Color]()
         
-        
-        // let's put the min and max values into values/context that makes sense for the UI we show to the user
         if let bgValueInMgDl = bgValueInMgDl() {
             if bgValueInMgDl >= urgentHighLimitInMgDl {
                 maxValue = ConstantsCalibrationAlgorithms.maximumBgReadingCalculatedValue
@@ -299,19 +270,13 @@ final class WatchStateModel: NSObject, ObservableObject {
             }
         }
         
-        // calculate a nil value to show on the gauge (as it can't display nil). This should basically just peg the gauge indicator in the middle of the current range
-        let nilValue =  minValue + ((maxValue - minValue) / 2)
+        let nilValue = minValue + ((maxValue - minValue) / 2)
         
-        // this means that there is a recent reading so we can show a colored gauge
-        // let's round the min value down to nearest 10 and the max up to nearest 10
-        // this is to start creating the gradient ranges
-        let minValueRoundedDown = Double(10 * Int(minValue/10))
-        let maxValueRoundedUp = Double(10 * Int(maxValue/10)) + 10
+        let minValueRoundedDown = Double(10 * Int(minValue / 10))
+        let maxValueRoundedUp = Double(10 * Int(maxValue / 10)) + 10
         
-        // the prevent the gradient changes from being too sharp, we'll reduce the granularity if trying to show a bigger range (such as >200mg/dL)
         let reducedGranularity = (maxValueRoundedUp - minValueRoundedDown) > 200
         
-        // step through the range and append the colors as necessary
         for currentValue in stride(from: minValueRoundedDown, through: maxValueRoundedUp, by: reducedGranularity ? 20 : 10) {
             if currentValue > urgentHighLimitInMgDl || currentValue <= urgentLowLimitInMgDl {
                 colorArray.append(.red)
@@ -325,21 +290,15 @@ final class WatchStateModel: NSObject, ObservableObject {
         return (minValue, maxValue, nilValue, Gradient(colors: colorArray))
     }
     
-    
-    // MARK: - Private functions used to interact with the WCSession and prepare internal data
+    // MARK: - Private functions
     
     private func processWatchStateFromDictionary(dictionary: [String: Any]) {
         let bgReadingDatesFromDictionary: [Double] = dictionary["bgReadingDatesAsDouble"] as? [Double] ?? [0]
         
-        // let's make a quick check to see if the data about to be processed is from within the last 12 hours
-        // this is to avoid long delays when re-opening a Watch app for the first time in days and waiting
-        // whilst the whole queue of userInfo messages are processed
-        if let lastBgReadingDateFromDictionaryReceived = bgReadingDatesFromDictionary.first, Date(timeIntervalSince1970: lastBgReadingDateFromDictionaryReceived) > Date(timeIntervalSinceNow: -3600 * 12) {
+        if let lastBgReadingDateFromDictionaryReceived = bgReadingDatesFromDictionary.first,
+           Date(timeIntervalSince1970: lastBgReadingDateFromDictionaryReceived) > Date(timeIntervalSinceNow: -3600 * 12) {
             
-            bgReadingDates = bgReadingDatesFromDictionary.map { (bgReadingDateAsDouble) -> Date in
-                return Date(timeIntervalSince1970: bgReadingDateAsDouble)
-            }
-            
+            bgReadingDates = bgReadingDatesFromDictionary.map { Date(timeIntervalSince1970: $0) }
             bgReadingValues = dictionary["bgReadingValues"] as? [Double] ?? [100]
             
             isMgDl = dictionary["isMgDl"] as? Bool ?? true
@@ -364,7 +323,6 @@ final class WatchStateModel: NSObject, ObservableObject {
             remainingComplicationUserInfoTransfers = dictionary["remainingComplicationUserInfoTransfers"] as? Int ?? 99
             liveDataIsEnabled = dictionary["liveDataIsEnabled"] as? Bool ?? false
             
-            // check if there is any BG data available before updating the data source info strings accordingly
             if let bgReadingDate = bgReadingDate() {
                 lastUpdatedTextString = Texts_WatchApp.lastReading + " "
                 lastUpdatedTimeString = bgReadingDate.formatted(date: .omitted, time: .shortened)
@@ -377,40 +335,41 @@ final class WatchStateModel: NSObject, ObservableObject {
             
             debugString = generateDebugString()
             
-            // now process the shared user defaults to get data for the WidgetKit complications
             updateComplicationData()
         }
     }
     
-    /// once we've process the state update, then save this data to the shared app group so that the complication can read it
     private func updateComplicationData() {
         guard let sharedUserDefaults = UserDefaults(suiteName: Bundle.main.appGroupSuiteName) else { return }
         
-        let bgReadingDatesAsDouble = bgReadingDates.map { date in
-            date.timeIntervalSince1970
-        }
+        let bgReadingDatesAsDouble = bgReadingDates.map { $0.timeIntervalSince1970 }
         
-        let complicationSharedUserDefaultsModel = ComplicationSharedUserDefaultsModel(bgReadingValues: bgReadingValues, bgReadingDatesAsDouble: bgReadingDatesAsDouble, isMgDl: isMgDl, slopeOrdinal: slopeOrdinal, deltaValueInUserUnit: deltaValueInUserUnit, urgentLowLimitInMgDl: urgentLowLimitInMgDl, lowLimitInMgDl: lowLimitInMgDl, highLimitInMgDl: highLimitInMgDl, urgentHighLimitInMgDl: urgentHighLimitInMgDl, keepAliveIsDisabled: keepAliveIsDisabled, liveDataIsEnabled: liveDataIsEnabled)
+        let complicationSharedUserDefaultsModel = ComplicationSharedUserDefaultsModel(
+            bgReadingValues: bgReadingValues,
+            bgReadingDatesAsDouble: bgReadingDatesAsDouble,
+            isMgDl: isMgDl,
+            slopeOrdinal: slopeOrdinal,
+            deltaValueInUserUnit: deltaValueInUserUnit,
+            urgentLowLimitInMgDl: urgentLowLimitInMgDl,
+            lowLimitInMgDl: lowLimitInMgDl,
+            highLimitInMgDl: highLimitInMgDl,
+            urgentHighLimitInMgDl: urgentHighLimitInMgDl,
+            keepAliveIsDisabled: keepAliveIsDisabled,
+            liveDataIsEnabled: liveDataIsEnabled
+        )
         
-        // store the model in the shared user defaults using a name that is uniquely specific to this copy of the app as installed on
-        // the user's device - this allows several copies of the app to be installed without cross-contamination of widget/complication data
         if let stateData = try? JSONEncoder().encode(complicationSharedUserDefaultsModel) {
             sharedUserDefaults.set(stateData, forKey: "complicationSharedUserDefaults.\(Bundle.main.mainAppBundleIdentifier)")
         }
         
-        // now that the new data is stored in the app group, try to force the complications to reload
         WidgetCenter.shared.reloadAllTimelines()
         
         lastComplicationUpdateTimeStamp = .now
     }
     
-    
-    // generate a debugString
     private func generateDebugString() -> String {
-        
         var debugString = "Last state: \(Date().formatted(date: .omitted, time: .standard))"
         
-        // check if there is any BG data available before updating the strings accordingly
         if let bgReadingDate = bgReadingDate() {
             debugString += "\nBG updated: \(bgReadingDate.formatted(date: .omitted, time: .standard))"
         } else {
@@ -418,16 +377,13 @@ final class WatchStateModel: NSObject, ObservableObject {
         }
         
         debugString += "\nBG values: \(bgReadingValues.count)"
-        
         debugString += "\nComp enabled: \(liveDataIsEnabled.description)"
-        
         debugString += "\nComp remain: \(remainingComplicationUserInfoTransfers.description)/50"
         
         if !isMaster {
             debugString += "\nFollower conn.: \(timeStampOfLastFollowerConnection.formatted(date: .omitted, time: .standard))"
-            
             if followerBackgroundKeepAliveType == .heartbeat {
-                debugString += "\nLast hearbeat: \(timeStampOfLastHeartBeat.formatted(date: .omitted, time: .standard))"
+                debugString += "\nLast heartbeat: \(timeStampOfLastHeartBeat.formatted(date: .omitted, time: .standard))"
             }
         }
         
@@ -438,40 +394,120 @@ final class WatchStateModel: NSObject, ObservableObject {
     }
 }
 
-// MARK: - WCSession delegate to handle communications
-
+// MARK: - WCSessionDelegate
 extension WatchStateModel: WCSessionDelegate {
-    func session(_: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error _: Error?) {
+    func session(_ session: WCSession,
+                 activationDidCompleteWith activationState: WCSessionActivationState,
+                 error: Error?) {
         if activationState == .activated {
+            print("WCSession activated. Putem porni Extended Runtime Session.")
             requestWatchStateUpdate()
+            
+            // Pornește acum sesiunea extinsă, când aplicația e sigur activă
+            startExtendedSessionIfNeeded()
+        } else {
+            print("WCSession nu e activat. Stare: \(activationState.rawValue)")
         }
     }
     
-    func sessionReachabilityDidChange(_ session: WCSession) {}
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        // Poți vedea dacă watch-ul devine reachable / unreachable
+    }
     
-    func session(_: WCSession, didReceiveMessageData messageData: Data) {}
+    func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
+        // Tratează mesaje sub formă de Data (dacă folosești așa ceva)
+    }
     
-    func session(_: WCSession, didReceiveMessage message: [String : Any]) {
-        let watchStateAsDictionary = message["watchState"] as! [String : Any]
-        
-        DispatchQueue.main.async {
-            self.processWatchStateFromDictionary(dictionary: watchStateAsDictionary)
-            self.requestingDataIconColor = ConstantsAppleWatch.requestingDataIconColorActive
-            
-            // change the requesting icon color back after a small delay to prevent it
-            // flashing on/off too quickly
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.requestingDataIconColor = ConstantsAppleWatch.requestingDataIconColorInactive
+    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        if let watchStateAsDictionary = message["watchState"] as? [String : Any] {
+            DispatchQueue.main.async {
+                self.processWatchStateFromDictionary(dictionary: watchStateAsDictionary)
+                self.requestingDataIconColor = ConstantsAppleWatch.requestingDataIconColorActive
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.requestingDataIconColor = ConstantsAppleWatch.requestingDataIconColorInactive
+                }
             }
         }
     }
     
-//    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
-    func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        let watchStateAsDictionary = userInfo["watchState"] as! [String : Any]
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+        if let watchStateAsDictionary = userInfo["watchState"] as? [String : Any] {
             DispatchQueue.main.async {
                 self.processWatchStateFromDictionary(dictionary: watchStateAsDictionary)
             }
-//        }
-     }
+        }
+    }
+    
+    
+    // MARK: - WKExtendedRuntimeSessionDelegate
+    
+    public func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
+        for task in backgroundTasks {
+            switch task {
+            case let backgroundTask as WKApplicationRefreshBackgroundTask:
+                // Pornim / repornim sesiunea extinsă dacă vrem să rămână activă în background
+                startExtendedSessionIfNeeded()
+                
+                // După ce ai făcut ce trebuie, marchezi task-ul complet
+                backgroundTask.setTaskCompletedWithSnapshot(false)
+                
+            default:
+                task.setTaskCompletedWithSnapshot(false)
+            }
+        }
+    }
+    
+    // Metodă de pornire "sigură" a sesiunii extinse
+    func startExtendedSessionIfNeeded() {
+        // REVIZUIRE: Adăugăm un switch care să trateze toate stările posibile
+        switch extendedSession.state {
+        case .notStarted:
+            print("[startExtendedSessionIfNeeded] WKExtendedRuntimeSession este .notStarted. Apelăm extendedSession.start().")
+            extendedSession.start()
+            
+        case .scheduled:
+            // Aici apare mesajul când deja a fost planificată pornirea
+            print("[startExtendedSessionIfNeeded] Sesiunea este .scheduled — nu mai apelăm start() încă o dată.")
+            
+        case .running:
+            // Sesiunea rulează deja
+            print("[startExtendedSessionIfNeeded] Sesiunea este deja .running — nu mai apelăm start().")
+            
+        case .invalid:
+            // Eventual decizi să o repornești dacă e invalidată, dar numai dacă e logic
+             extendedSession = WKExtendedRuntimeSession()
+             extendedSession.delegate = self
+             extendedSession.start()
+            print("[startExtendedSessionIfNeeded] Sesiunea este .invalidated — decide dacă vrei să o reinițializezi.")
+            
+        @unknown default:
+            print("[startExtendedSessionIfNeeded] Sesiunea are o stare necunoscută. Nu apelăm start().")
+        }
+    }
+    
+    
+    func startExtendedSessionManually() {
+        startExtendedSessionIfNeeded()
+    }
+    
+    @objc func extendedRuntimeSessionDidStart(_ extendedRuntimeSession: WKExtendedRuntimeSession) {
+        print("WKExtendedRuntimeSession a pornit! Stare curentă: \(extendedRuntimeSession.state.rawValue)")
+    }
+
+    @objc func extendedRuntimeSessionWillExpire(_ extendedRuntimeSession: WKExtendedRuntimeSession) {
+        print("WKExtendedRuntimeSession va expira curând. Stare curentă: \(extendedRuntimeSession.state.rawValue)")
+    }
+    
+    @objc(extendedRuntimeSession:didInvalidateWithReason:error:)
+    func extendedRuntimeSession(_ extendedRuntimeSession: WKExtendedRuntimeSession,
+                                didInvalidateWith reason: WKExtendedRuntimeSessionInvalidationReason,
+                                error: Error?) {
+        print("WKExtendedRuntimeSession a fost invalidată. Motiv: \(reason.rawValue). Eroare: \(String(describing: error))")
+ 
+    }
+
+   
+    
+    
 }

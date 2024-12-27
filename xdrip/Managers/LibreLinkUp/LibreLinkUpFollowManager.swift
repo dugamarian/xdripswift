@@ -821,7 +821,6 @@ class LibreLinkUpFollowManager: NSObject {
     /// verifies values of applicable UserDefaults and either starts or stops follower mode, inclusive call to enableSuspensionPrevention or disableSuspensionPrevention - also first download is started if applicable
     private func verifyUserDefaultsAndStartOrStopFollowMode() {
         if !UserDefaults.standard.isMaster && UserDefaults.standard.followerDataSourceType == .libreLinkUp && UserDefaults.standard.libreLinkUpEmail != nil && UserDefaults.standard.libreLinkUpPassword != nil {
-            
             // this will enable the suspension prevention sound playing if background keep-alive is needed
             // (i.e. not disabled and not using a heartbeat)
             if UserDefaults.standard.followerBackgroundKeepAliveType.shouldKeepAlive {
