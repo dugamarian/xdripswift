@@ -15,6 +15,18 @@ func isAlarm(glucoseValue: Double, context: ActivityViewContext<XDripWidgetAttri
     return (glucoseValue < Double(context.state.lowLimitInMgDl)) || (glucoseValue > Double(context.state.highLimitInMgDl))
 }
 
+func relativeDateText(_ date: Date?) -> some View {
+    let dateToUse = date ?? Date()
+    let isOlderThan10Minutes = Date().timeIntervalSince(dateToUse) > 600
+
+    return Text(dateToUse, style: .relative)
+        .font(.system(size: 15))
+        .foregroundStyle(isOlderThan10Minutes ? Color.red : Color.primary)
+        .minimumScaleFactor(0.2)
+        .lineLimit(1)
+        .padding(.top, 10)
+}
+
 struct XDripWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: XDripWidgetAttributes.self) { context in
@@ -344,7 +356,7 @@ struct SmartStackLiveActivityContentView: View {
     @Environment(\.widgetFamily) var activityFamily
     @Environment(\.colorScheme) var colorScheme
     @State var context: ActivityViewContext<XDripWidgetAttributes>
-
+ 
     var body: some View {
     
         if context.state.liveActivityType == .minimal {
@@ -410,7 +422,7 @@ struct SmartStackLiveActivityContentView: View {
                                     .lineLimit(1)
                            
                                 Text(context.state.bgReadingDate ?? Date(), style: .relative)
-                                    .font(.system(size: activityFamily.toSidebarRowSize == .small ? 12 : 18))
+                                    .font(.system(size: activityFamily.toSidebarRowSize == .small ? 10 : 16))
                                     .font(.caption)
                                     .foregroundStyle(Color.primary)
                                 
@@ -429,8 +441,8 @@ struct SmartStackLiveActivityContentView: View {
                             highLimitInMgDl: context.state.highLimitInMgDl,
                             urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
                             liveActivityType: nil,
-                            hoursToShowScalingHours: 6,
-                            glucoseCircleDiameterScalingHours: 1.7,
+                            hoursToShowScalingHours: nil, //6,
+                            glucoseCircleDiameterScalingHours: nil, // 1.7,
                             overrideChartHeight: nil, // geo.size.height * 0.50,
                             overrideChartWidth:  geo.size.width,
                             highContrast: nil
@@ -484,42 +496,5 @@ extension WidgetFamily {
     }
 }
 
-extension Date {
-    func minutesAgo() -> String {
-        let minutes = Int(-self.timeIntervalSinceNow / 60)
-        if minutes < 1 {
-            return "0 mins ago"
-        } else if minutes == 1 {
-            return "1 min ago"
-        } else {
-            return "\(minutes) mins ago"
-        }
-    }
-}
-
-
-struct MinutesAgoTimer: View {
-    let date: Date?
-    @State private var currentTime = Date()
-    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
-    
-    func minutesAgo(from date: Date) -> String {
-        let minutes = Int(-date.timeIntervalSinceNow / 60)
-        if minutes < 1 {
-            return "just now"
-        } else if minutes == 1 {
-            return "1 min ago"
-        } else {
-            return "\(minutes) mins ago"
-        }
-    }
-    
-    var body: some View {
-        Text(date.map { minutesAgo(from: $0) } ?? "--")
-            .onReceive(timer) { _ in
-                currentTime = Date()
-            }
-    }
-}
 
 

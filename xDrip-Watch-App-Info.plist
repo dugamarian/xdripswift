@@ -12,7 +12,7 @@
 	</array>
 	<key>WKBackgroundModes</key>
 	<array>
-		<string>extendedRuntime</string>
+		<string>mindfulness</string>
 		<string>physical-therapy</string>
 	</array>
 </dict>
