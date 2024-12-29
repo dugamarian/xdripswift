@@ -174,7 +174,8 @@ platform :ios do
     ])
     
     configure_bundle_id("xDrip Watch App", "com.#{TEAMID}.xdripswift.watchkitapp", [
-      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS
+      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS,
+      Spaceship::ConnectAPI::BundleIdCapability::Type::HEALTHKIT
     ])
     
     configure_bundle_id("xDrip Watch Complication Extension", "com.#{TEAMID}.xdripswift.watchkitapp.xDripWatchComplication", [
