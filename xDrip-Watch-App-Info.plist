@@ -9,11 +9,12 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
+		<string>remote-notification</string>
 	</array>
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>mindfulness</string>
-		<string>physical-therapy</string>
+		<string>workout-processing</string>
 	</array>
 </dict>
 </plist>
