@@ -129,7 +129,8 @@ struct XDripWidgetLiveActivity_Previews: PreviewProvider {
         highLimitInMgDl: 140,
         urgentHighLimitInMgDl: 180,
         liveActivityType: .large,
-        dataSourceDescription: "Dexcom G6"
+        dataSourceDescription: "Dexcom G6",
+        liveActivityForWatchOS: .withChartType
     )
 
     static var previews: some View {
@@ -148,11 +149,24 @@ struct XDripWidgetLiveActivity_Previews: PreviewProvider {
     }
 }
 
+func overrideChartHeight() -> Double {
+    let height = isSmallScreen() ? ConstantsGlucoseChartSwiftUI.viewHeightWatchAccessoryRectangularSmall : ConstantsGlucoseChartSwiftUI.viewHeightWatchAccessoryRectangular
+
+    
+    return height
+}
+
+func overrideChartWidth() -> Double {
+    return isSmallScreen() ? ConstantsGlucoseChartSwiftUI.viewWidthWatchAccessoryRectangularSmall : ConstantsGlucoseChartSwiftUI.viewWidthWatchAccessoryRectangular
+}
+
+
 
 struct LockScreenLiveActivityContentView: View {
     @Environment(\.colorScheme) var colorScheme
     @State var context: ActivityViewContext<XDripWidgetAttributes>
-   
+    static let viewWidthWatchApp: CGFloat = 190
+    static let viewHeightWatchApp: CGFloat = 90
    
     var body: some View {
         VStack {
@@ -310,7 +324,7 @@ struct LockScreenLiveActivityContentView: View {
                             urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
                             liveActivityType: .large,
                             hoursToShowScalingHours: nil,
-                            glucoseCircleDiameterScalingHours: nil,
+                            glucoseCircleDiameterScalingHours: 3,
                             overrideChartHeight: nil,
                             overrideChartWidth: nil,
                             highContrast: nil
@@ -359,7 +373,7 @@ struct SmartStackLiveActivityContentView: View {
  
     var body: some View {
     
-        if context.state.liveActivityType == .minimal {
+        if context.state.liveActivityForWatchOS == .simpleType {
             ZStack {
                 context.state.backgroundWidgetColor()
                     .ignoresSafeArea()
@@ -407,16 +421,16 @@ struct SmartStackLiveActivityContentView: View {
                 GeometryReader { geo in
                     VStack(spacing: 0) {
                         HStack(alignment: .lastTextBaseline, spacing: 10) {
-                            Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
-                                .font(.system(size: activityFamily.toSidebarRowSize == .small ? 18 : 22))
-                                .fontWeight(.semibold)
+                            Text("\(context.state.bgValueStringInUserChosenUnit)\(context.state.trendArrow())")
+                                .font(.system(size: activityFamily.toSidebarRowSize == .small ? 20 : 24))
+                                .fontWeight(.bold)
                                 .foregroundStyle(context.state.bgTextColor())
                                 .lineLimit(1)
                                
                        
                             HStack(alignment: .firstTextBaseline, spacing: 12) {
                                 Text(context.state.deltaChangeStringInUserChosenUnit())
-                                    .font(.system(size: activityFamily.toSidebarRowSize == .small ? 12 : 18))
+                                    .font(.system(size: activityFamily.toSidebarRowSize == .small ? 20 : 24))
                                     .fontWeight(.semibold)
                                     .foregroundStyle(context.state.deltaChangeTextColor())
                                     .lineLimit(1)
@@ -428,11 +442,11 @@ struct SmartStackLiveActivityContentView: View {
                                 
                             }
                         }
-                        .padding(.bottom, activityFamily.toSidebarRowSize == .small ? 0 : 1)
+
                         .padding([.leading, .trailing], 10)
         
                         GlucoseChartView(
-                            glucoseChartType: .widgetAccessoryRectangular,
+                            glucoseChartType: .watchAccessoryRectangular,
                             bgReadingValues: context.state.bgReadingValues,
                             bgReadingDates: context.state.bgReadingDates,
                             isMgDl: context.state.isMgDl,
@@ -441,17 +455,17 @@ struct SmartStackLiveActivityContentView: View {
                             highLimitInMgDl: context.state.highLimitInMgDl,
                             urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
                             liveActivityType: nil,
-                            hoursToShowScalingHours: nil, //6,
-                            glucoseCircleDiameterScalingHours: nil, // 1.7,
-                            overrideChartHeight: nil, // geo.size.height * 0.50,
-                            overrideChartWidth:  geo.size.width,
+                            hoursToShowScalingHours: 5, //6,
+                            glucoseCircleDiameterScalingHours: 3, // 1.7,
+                            overrideChartHeight: 50, // geo.size.height * 0.50,
+                            overrideChartWidth: overrideChartWidth(),
                             highContrast: nil
                         )
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                  //  .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .activityBackgroundTint(.black)
+         //   .activityBackgroundTint(.black)
         }
     }
 }
@@ -498,3 +512,11 @@ extension WidgetFamily {
 
 
 
+struct ScreenConstants {
+    static let pixelWidthLimitForSmallScreen: CGFloat = 320
+}
+
+/// Verifică dacă lățimea ecranului este sub un anumit prag
+func isSmallScreen() -> Bool {
+    return UIScreen.main.bounds.size.width < ScreenConstants.pixelWidthLimitForSmallScreen
+}

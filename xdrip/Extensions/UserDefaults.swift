@@ -74,6 +74,8 @@ extension UserDefaults {
         /// which type of live activities should be shown, if any?
         case liveActivityType = "liveActivityType"
         
+        case liveActivityTypeForWatchOS = "liveActivityTypeForWatchOS"
+        
         // Home Screen and main chart settings
         
         /// should the screen/chart be allowed to rotate?
@@ -675,6 +677,16 @@ extension UserDefaults {
         }
         set {
             set(newValue.rawValue, forKey: Key.liveActivityType.rawValue)
+        }
+    }
+    
+    var liveActivityTypeForWatchOS: LiveActivityTypeForWatchOS {
+        get {
+            let liveActivityTypeForWatchAsInt = integer(forKey: Key.liveActivityTypeForWatchOS.rawValue)
+            return LiveActivityTypeForWatchOS(rawValue: liveActivityTypeForWatchAsInt) ?? .disabled
+        }
+        set {
+            set(newValue.rawValue, forKey: Key.liveActivityTypeForWatchOS.rawValue)
         }
     }
     

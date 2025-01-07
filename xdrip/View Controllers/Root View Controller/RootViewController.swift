@@ -889,6 +889,8 @@ final class RootViewController: UIViewController, ObservableObject {
         // if live action type is updated
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.liveActivityType.rawValue, options: .new, context: nil)
         
+        UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.liveActivityTypeForWatchOS.rawValue, options: .new, context: nil)
+        
         // high mark , low mark , urgent high mark, urgent low mark. change requires redraw of chart
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.urgentLowMarkValue.rawValue, options: .new, context: nil)
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.lowMarkValue.rawValue, options: .new, context: nil)
@@ -1638,6 +1640,11 @@ final class RootViewController: UIViewController, ObservableObject {
             updateLiveActivityAndWidgets(forceRestart: false)
 
         case UserDefaults.Key.liveActivityType:
+
+            // check and configure the live activity if applicable
+            updateLiveActivityAndWidgets(forceRestart: false)
+            
+        case UserDefaults.Key.liveActivityTypeForWatchOS:
 
             // check and configure the live activity if applicable
             updateLiveActivityAndWidgets(forceRestart: false)
@@ -3569,7 +3576,7 @@ final class RootViewController: UIViewController, ObservableObject {
                 // if we should show it, then let's continue processing the lastReading array to create a valid contentState
                 if (UserDefaults.standard.isMaster || (!UserDefaults.standard.isMaster && UserDefaults.standard.followerBackgroundKeepAliveType == .heartbeat)) && UserDefaults.standard.liveActivityType != .disabled {
                     // create the contentState that will update the dynamic attributes of the Live Activity Widget
-                    let contentState = XDripWidgetAttributes.ContentState( bgReadingValues: bgReadingValues, bgReadingDates: bgReadingDates, isMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl, slopeOrdinal: slopeOrdinal, deltaValueInUserUnit: deltaValueInUserUnit, urgentLowLimitInMgDl: UserDefaults.standard.urgentLowMarkValue, lowLimitInMgDl: UserDefaults.standard.lowMarkValue, highLimitInMgDl: UserDefaults.standard.highMarkValue, urgentHighLimitInMgDl: UserDefaults.standard.urgentHighMarkValue, liveActivityType: UserDefaults.standard.liveActivityType, dataSourceDescription: dataSourceDescription)
+                    let contentState = XDripWidgetAttributes.ContentState( bgReadingValues: bgReadingValues, bgReadingDates: bgReadingDates, isMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl, slopeOrdinal: slopeOrdinal, deltaValueInUserUnit: deltaValueInUserUnit, urgentLowLimitInMgDl: UserDefaults.standard.urgentLowMarkValue, lowLimitInMgDl: UserDefaults.standard.lowMarkValue, highLimitInMgDl: UserDefaults.standard.highMarkValue, urgentHighLimitInMgDl: UserDefaults.standard.urgentHighMarkValue, liveActivityType: UserDefaults.standard.liveActivityType, dataSourceDescription: dataSourceDescription, liveActivityForWatchOS: UserDefaults.standard.liveActivityTypeForWatchOS)
                     
                       LiveActivityManager.shared.runActivity(contentState: contentState, forceRestart: forceRestart)
                 } else {

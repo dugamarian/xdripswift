@@ -213,6 +213,11 @@
 		47FB28082636B04200042FFB /* StatisticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FB28072636B04200042FFB /* StatisticsManager.swift */; };
 		6D13835B2CC4F1CC007E566F /* XdripSmartStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13835A2CC4F1BF007E566F /* XdripSmartStack.swift */; };
 		6D13835D2CC4F87A007E566F /* LAintent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D13835C2CC4F871007E566F /* LAintent.swift */; };
+		6D17F5D22D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
+		6D17F5D32D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
+		6D17F5D42D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
+		6D17F5D52D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
+		6D17F5D62D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
 		6DC3E9192CCC17F100991C1C /* CalendarIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC3E9182CCC17E700991C1C /* CalendarIntent.swift */; };
 		CE1B2FE025D0264B00F642F5 /* LaunchScreen.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE1B2FD125D0264900F642F5 /* LaunchScreen.strings */; };
 		CE1B2FE125D0264B00F642F5 /* Main.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE1B2FD425D0264900F642F5 /* Main.strings */; };
@@ -1042,6 +1047,7 @@
 		666E283926F7E54C00ACE4DF /* Version.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Version.xcconfig; path = xdrip/Version.xcconfig; sourceTree = "<group>"; };
 		6D13835A2CC4F1BF007E566F /* XdripSmartStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XdripSmartStack.swift; sourceTree = "<group>"; };
 		6D13835C2CC4F871007E566F /* LAintent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LAintent.swift; sourceTree = "<group>"; };
+		6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityTypeForWatchOS.swift; sourceTree = "<group>"; };
 		6DC3E9182CCC17E700991C1C /* CalendarIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarIntent.swift; sourceTree = "<group>"; };
 		CE1B2FC825D0261500F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Alerts.strings; sourceTree = "<group>"; };
 		CE1B2FCD25D0264900F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/AlertTypesSettingsView.strings; sourceTree = "<group>"; };
@@ -1964,6 +1970,7 @@
 			children = (
 				4716A5132B41CAD000419052 /* LiveActivityManager.swift */,
 				477B2C7D2B432775002F64A4 /* LiveActivityType.swift */,
+				6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */,
 			);
 			path = LiveActivity;
 			sourceTree = "<group>";
@@ -4241,6 +4248,7 @@
 				6D13835B2CC4F1CC007E566F /* XdripSmartStack.swift in Sources */,
 				47037B8F2C072973000BD6BD /* ConstantsAlerts.swift in Sources */,
 				47A6AC412B7D42EC0047A4BA /* TextsCommon.swift in Sources */,
+				6D17F5D22D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */,
 				478A92572B8FA1E30084C394 /* ConstantsBGGraphBuilder.swift in Sources */,
 				4746068F2B963EA100AC9214 /* View.swift in Sources */,
 				47A6AC322B7D3E250047A4BA /* ConstantsUI.swift in Sources */,
@@ -4268,6 +4276,7 @@
 				478A92642B8FBEBF0084C394 /* TextsHomeView.swift in Sources */,
 				474606652B95E48D00AC9214 /* ComplicationSharedUserDefaultsModel.swift in Sources */,
 				478A92662B90AB230084C394 /* GlucoseChartType.swift in Sources */,
+				6D17F5D52D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */,
 				478A92632B8FB5490084C394 /* XDripWatchComplication+Provider.swift in Sources */,
 				478A92592B8FA1F20084C394 /* Double.swift in Sources */,
 				4746066F2B9618FD00AC9214 /* AccessoryInlineView.swift in Sources */,
@@ -4309,6 +4318,7 @@
 				47A6AC372B7D3E650047A4BA /* GlucoseChartType.swift in Sources */,
 				47A6ABE42B790CC60047A4BA /* MainView.swift in Sources */,
 				474606882B9637F600AC9214 /* TextsSettingsView.swift in Sources */,
+				6D17F5D42D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */,
 				474822482C010F380052D4FB /* TextsAlerts.swift in Sources */,
 				4793599A2B8A2A4E007D3CEE /* MainViewInfoView.swift in Sources */,
 				47A6ABEF2B7949B80047A4BA /* WatchStateModel.swift in Sources */,
@@ -4349,6 +4359,7 @@
 				473775832C14DCA500525B90 /* GlucoseChartType.swift in Sources */,
 				473775852C14DCC600525B90 /* GlucoseChartView.swift in Sources */,
 				47CD64192BE9506C002BDA68 /* NotificationViewController.swift in Sources */,
+				6D17F5D32D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */,
 				474822412BFE62220052D4FB /* ConstantsCalendar.swift in Sources */,
 				47037B912C07B15E000BD6BD /* ConstantsAlerts.swift in Sources */,
 				4737758C2C14DDA700525B90 /* View.swift in Sources */,
@@ -4564,6 +4575,7 @@
 				F816E0F524367132009EE65B /* GNSEntry+CoreDataProperties.swift in Sources */,
 				F898EDF4234A8A3200BFB79B /* UInt16.swift in Sources */,
 				F8BDD452221DEAB2006EAB84 /* TextsSettingsView.swift in Sources */,
+				6D17F5D62D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */,
 				F8EEDD6423020FAD00D2D610 /* NoCalibrator.swift in Sources */,
 				F8177023248CF78300AA3600 /* LibreSensorType.swift in Sources */,
 				F8C97859242AAE7B00A09483 /* MiaoMiao+BluetoothPeripheral.swift in Sources */,

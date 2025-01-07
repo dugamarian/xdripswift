@@ -53,6 +53,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
         var warnUserToOpenApp: Bool = true
         var liveActivityType: LiveActivityType
         var dataSourceDescription: String
+        var liveActivityForWatchOS: LiveActivityTypeForWatchOS
 
         var bgUnitString: String {
             isMgDl ? Texts_Common.mgdl : Texts_Common.mmol
@@ -74,7 +75,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
             }
         }
 
-        init(bgReadingValues: [Double], bgReadingDates: [Date], isMgDl: Bool, slopeOrdinal: Int, deltaValueInUserUnit: Double?, urgentLowLimitInMgDl: Double, lowLimitInMgDl: Double, highLimitInMgDl: Double, urgentHighLimitInMgDl: Double, liveActivityType: LiveActivityType, dataSourceDescription: String? = "") {
+        init(bgReadingValues: [Double], bgReadingDates: [Date], isMgDl: Bool, slopeOrdinal: Int, deltaValueInUserUnit: Double?, urgentLowLimitInMgDl: Double, lowLimitInMgDl: Double, highLimitInMgDl: Double, urgentHighLimitInMgDl: Double, liveActivityType: LiveActivityType, dataSourceDescription: String? = "", liveActivityForWatchOS: LiveActivityTypeForWatchOS) {
         
             self.bgReadingFloats = bgReadingValues.map(Float16.init)
 
@@ -91,6 +92,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
             self.urgentHighLimitInMgDl = urgentHighLimitInMgDl            
             self.liveActivityType = liveActivityType
             self.dataSourceDescription = dataSourceDescription ?? ""
+            self.liveActivityForWatchOS = liveActivityForWatchOS
         }
         
         /// Blood glucose color dependant on the user defined limit values and based upon the time since the last reading

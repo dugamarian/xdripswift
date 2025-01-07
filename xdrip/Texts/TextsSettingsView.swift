@@ -45,6 +45,10 @@ class Texts_SettingsView {
         return NSLocalizedString("settingsviews_labelLiveActivityType", tableName: filename, bundle: Bundle.main, value: "Live Activities", comment: "notification settings, type of live activities that should be enabled")
     }()
     
+    static let labelLiveActivityTypeForWatch: String = {
+        return NSLocalizedString("settingsviews_labelLiveActivityType", tableName: filename, bundle: Bundle.main, value: "Live Activities For Apple Watch", comment: "notification settings, type of live activities that should be enabled")
+    }()
+    
     static let liveActivityTypeDisabled: String = {
         return NSLocalizedString("settingsviews_liveActivityTypeDisabled", tableName: filename, bundle: Bundle.main, value: "Disabled", comment: "notification settings, disable live activities")
     }()
@@ -64,12 +68,18 @@ class Texts_SettingsView {
     static let liveActivityTypeNormal: String = {
         return NSLocalizedString("settingsviews_liveActivityTypeNormal", tableName: filename, bundle: Bundle.main, value: "Normal", comment: "notification settings, live activity size normal")
     }()
-    
+       
     static let liveActivityTypeLarge: String = {
         return NSLocalizedString("settingsviews_liveActivityTypeLarge", tableName: filename, bundle: Bundle.main, value: "Large", comment: "notification settings, live activity size large")
     }()
     
+    static let liveActivityTypeSimpleType: String = {
+        return NSLocalizedString("settingsviews_liveActivityTypeNormal", tableName: filename, bundle: Bundle.main, value: "Standard", comment: "notification settings, live activity Standard Size")
+    }()
     
+    static let liveActivityTypeWithChart: String = {
+        return NSLocalizedString("settingsviews_liveActivityTypeNormal", tableName: filename, bundle: Bundle.main, value: "Chart", comment: "notification settings, live activity Chart Size")
+    }()
     // MARK: - Section Data Source
     
     static let sectionTitleDataSource: String = {

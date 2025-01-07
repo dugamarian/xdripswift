@@ -64,6 +64,8 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
         let curentSlope = currentReading.slopeOrdinal()
     
         let size = UserDefaults.standard.liveActivityType
+        
+        let watchSize = UserDefaults.standard.liveActivityTypeForWatchOS
 
         let contentState = XDripWidgetAttributes.ContentState(
             bgReadingValues: bgReadingValues,
@@ -76,7 +78,8 @@ struct RestartLiveActivityIntent: LiveActivityIntent {
             highLimitInMgDl: highLimitInMgDl,
             urgentHighLimitInMgDl: urgentHighLimitInMgDl,
             liveActivityType: size,
-            dataSourceDescription: dataSourceDescription
+            dataSourceDescription: dataSourceDescription,
+            liveActivityForWatchOS: watchSize
         )
 
         // Restart the live activity
