@@ -5,6 +5,19 @@
 //  Created by Paul Plant on 13/01/2024.
 //  Copyright © 2023 Johan Degraeve. All rights reserved.
 //
+//  Observație: Dacă ultimul punct din "liveActivityLarge" nu se ridică suficient,
+//  de obicei sunt două cauze posibile:
+//   1) Domeniul Y (min...maxValue) se calculează prea strâns și ultimul punct este "tăiat".
+//   2) Ultimul punct suferă de smoothing, interpolare sau "snap" la un timp fix.
+//
+//  În plus, dorim să optimizăm codul pentru a reduce consumul energetic, în special
+//  în funcțiile de netezire. O abordare cu "Exponential Smoothing" (cu un alpha fix)
+//  poate reduce semnificativ calculele, rămânând totodată liniară O(n).
+//
+//  Mai jos, la final, a fost înlocuită funcția "smoothValuesSkippingLast" cu o formă
+//  de "exponential smoothing" (o singură trecere prin date). Ultimul punct rămâne
+//  neschimbat (nu se netezește).
+//
 
 import Charts
 import SwiftUI
@@ -12,10 +25,14 @@ import Foundation
 
 struct GlucoseChartView: View {
     
+    // MARK: - Stored Properties
+
+    // Date + valori
     var bgReadingValues: [Double]
     var bgReadingDates: [Date]
     
-    let chartType: GlucoseChartType // shortened to chartType to make reading easier below
+    // Parametri chart
+    let chartType: GlucoseChartType
     let isMgDl: Bool
     let urgentLowLimitInMgDl: Double
     let lowLimitInMgDl: Double
@@ -27,6 +44,8 @@ struct GlucoseChartView: View {
     let chartHeight: Double
     let chartWidth: Double
     let showHighContrast: Bool
+    
+    // MARK: - Initialization
     
     init(
         glucoseChartType: GlucoseChartType,
@@ -44,7 +63,7 @@ struct GlucoseChartView: View {
         overrideChartWidth: Double?,
         highContrast: Bool?
     ) {
-        
+        // 1) Inițializează proprietăți simple
         self.chartType = glucoseChartType
         self.isMgDl = isMgDl
         self.urgentLowLimitInMgDl = urgentLowLimitInMgDl
@@ -54,59 +73,213 @@ struct GlucoseChartView: View {
         self.liveActivityType = liveActivityType ?? .normal
         self.showHighContrast = highContrast ?? false
         
-        // hoursToShow can be overridden for zoom, otherwise it is derived
-        self.hoursToShow = hoursToShowScalingHours ?? chartType.hoursToShow(liveActivityType: self.liveActivityType)
+        // 2) Determinare "hoursToShow"
+        let localHoursToShow = hoursToShowScalingHours
+            ?? chartType.hoursToShow(liveActivityType: self.liveActivityType)
+        self.hoursToShow = localHoursToShow
         
-        self.chartHeight = overrideChartHeight ?? chartType.viewSize(liveActivityType: self.liveActivityType).height
-        self.chartWidth = overrideChartWidth ?? chartType.viewSize(liveActivityType: self.liveActivityType).width
+        // 3) Dimensiuni chart
+        self.chartHeight = overrideChartHeight
+            ?? chartType.viewSize(liveActivityType: self.liveActivityType).height
+        self.chartWidth = overrideChartWidth
+            ?? chartType.viewSize(liveActivityType: self.liveActivityType).width
         
-        // Determine the diameter of data points
-        self.glucoseCircleDiameter =
-            chartType.glucoseCircleDiameter(liveActivityType: self.liveActivityType)
-            * ((glucoseCircleDiameterScalingHours ?? self.hoursToShow) / self.hoursToShow)
+        // 4) Diametrul punctelor
+        let diameterBase = chartType.glucoseCircleDiameter(liveActivityType: self.liveActivityType)
+        let scaleFactor = (glucoseCircleDiameterScalingHours ?? localHoursToShow) / localHoursToShow
+        self.glucoseCircleDiameter = diameterBase * scaleFactor
         
-        self.bgReadingValues = []
-        self.bgReadingDates = []
+        // 5) Date locale (filtrare după fereastra de timp)
+        var localDates: [Date] = []
+        var localValues: [Double] = []
         
-        // Filter only the data that falls within the hoursToShow interval
-        if let bgReadingValues = bgReadingValues, let bgReadingDates = bgReadingDates {
-            var index = 0
-            for _ in bgReadingValues {
-                if bgReadingDates[index] > Date().addingTimeInterval(-hoursToShow * 60 * 60) {
-                    self.bgReadingValues.append(bgReadingValues[index])
-                    self.bgReadingDates.append(bgReadingDates[index])
+        if let bgValues = bgReadingValues, let bgDates = bgReadingDates {
+            zip(bgDates, bgValues).forEach { (date, value) in
+                // Păstrăm doar punctele din fereastra de timp
+                if date > Date().addingTimeInterval(-localHoursToShow * 3600) {
+                    localDates.append(date)
+                    localValues.append(value)
                 }
-                index += 1
             }
         }
         
-        // ─────────────────────────────────────────────────────────────────────
-        //  Integration: remove outliers, fill in missing data, then smooth
-        // ─────────────────────────────────────────────────────────────────────
-        
-        // 1) Remove outliers
+        // 6) Prelucrări: remove outliers -> fill missing -> skip final gap -> smooth
         var (fDates, fValues) = removeOutliersFromPairs(
-            dates: self.bgReadingDates,
-            values: self.bgReadingValues,
+            dates: localDates,
+            values: localValues,
             sigma: 3.0
         )
         
-        // 2) Fill missing data every 1 minute
-        (fDates, fValues) = fillMissingDates(
+        (fDates, fValues) = fillMissingDatesPreservingFinal(
             dates: fDates,
             values: fValues,
-            intervalInMinutes: 1
+            intervalInMinutes: 5
         )
         
-        // 3) Smoothing (moving average) - adjust windowSize for more/less smoothing
-        fValues = smoothValues(fValues, windowSize: 3)
+        // În loc de moving average, folosim exponential smoothing
+        // cu O(n) complexitate, reducând resursele necesare
+        fValues = smoothValuesSkippingLastExponential(
+            fValues,
+            alpha: 0.3  // Ajustează după preferințe
+        )
         
-        // Update arrays
+        // 7) Atribuire finală
         self.bgReadingDates = fDates
         self.bgReadingValues = fValues
     }
     
-    /// Blood glucose color based on user-defined limits
+    // MARK: - Body
+    
+    var body: some View {
+        
+        // Ajustăm puțin offset-ul pentru ultimul punct, mai ales pt. liveActivityLarge
+        let extraRange: Double = {
+            if chartType == .liveActivity {
+                return 10
+            } else {
+                return 6
+            }
+        }()
+        
+        let minVal = min(bgReadingValues.min() ?? 40, urgentLowLimitInMgDl) - extraRange
+        let maxVal = max(bgReadingValues.max() ?? urgentHighLimitInMgDl, urgentHighLimitInMgDl) + extraRange
+        let domain = minVal...maxVal
+        
+        let yAxisLineSize = chartType.yAxisLineSize()
+        
+        Chart {
+            // UrgentLow line
+            if domain.contains(urgentLowLimitInMgDl) {
+                RuleMark(y: .value("", urgentLowLimitInMgDl))
+                    .lineStyle(StrokeStyle(lineWidth: yAxisLineSize, dash: [2 * yAxisLineSize, 6 * yAxisLineSize]))
+                    .foregroundStyle(chartType.yAxisUrgentLowHighLineColor())
+            }
+            
+            // UrgentHigh line
+            if domain.contains(urgentHighLimitInMgDl) {
+                RuleMark(y: .value("", urgentHighLimitInMgDl))
+                    .lineStyle(StrokeStyle(lineWidth: yAxisLineSize, dash: [2 * yAxisLineSize, 6 * yAxisLineSize]))
+                    .foregroundStyle(chartType.yAxisUrgentLowHighLineColor())
+            }
+            
+            // Low line
+            if domain.contains(lowLimitInMgDl) {
+                RuleMark(y: .value("", lowLimitInMgDl))
+                    .lineStyle(StrokeStyle(lineWidth: yAxisLineSize, dash: [4 * yAxisLineSize, 3 * yAxisLineSize]))
+                    .foregroundStyle(chartType.yAxisLowHighLineColor())
+            }
+            
+            // High line
+            if domain.contains(highLimitInMgDl) {
+                RuleMark(y: .value("", highLimitInMgDl))
+                    .lineStyle(StrokeStyle(lineWidth: yAxisLineSize, dash: [4 * yAxisLineSize, 3 * yAxisLineSize]))
+                    .foregroundStyle(chartType.yAxisLowHighLineColor())
+            }
+            
+            // Phantom la început
+            PointMark(
+                x: .value("Time", Date().addingTimeInterval(-hoursToShow * 3600)),
+                y: .value("BG", (domain.lowerBound + domain.upperBound) / 2)
+            )
+            .symbol(Circle())
+            .symbolSize(glucoseCircleDiameter)
+            .foregroundStyle(.clear)
+            
+            // Punctele reale
+            ForEach(bgReadingValues.indices, id: \.self) { idx in
+                PointMark(
+                    x: .value("Time", bgReadingDates[idx]),
+                    y: .value("BG", bgReadingValues[idx])
+                )
+                .symbol(Circle())
+                .symbolSize(glucoseCircleDiameter)
+                .foregroundStyle(bgColor(bgValueInMgDl: bgReadingValues[idx]))
+            }
+            
+            // Phantom la final
+            PointMark(
+                x: .value("Time", Date().addingTimeInterval(5 * 60)),
+                y: .value("BG", (domain.lowerBound + domain.upperBound) / 2)
+            )
+            .symbol(Circle())
+            .symbolSize(glucoseCircleDiameter)
+            .foregroundStyle(.clear)
+        }
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .hour, count: chartType.xAxisLabelEveryHours())) {
+                if let dateValue = $0.as(Date.self) {
+                    if chartType.xAxisShowLabels() {
+                        AxisValueLabel {
+                            let shouldHideLabel =
+                                abs(Date().distance(to: dateValue))
+                                    < ConstantsGlucoseChartSwiftUI.xAxisLabelFirstClippingInMinutes
+                                ||
+                                abs(Date().addingTimeInterval(-hoursToShow * 3600).distance(to: dateValue))
+                                    < ConstantsGlucoseChartSwiftUI.xAxisLabelLastClippingInMinutes
+                            
+                            Text(!shouldHideLabel ? dateValue.formatted(.dateTime.hour()) : "")
+                                .foregroundStyle(Color(.colorSecondary))
+                                .font(.footnote)
+                                .offset(
+                                    x: chartType.xAxisLabelOffsetX(),
+                                    y: chartType.xAxisLabelOffsetY()
+                                )
+                        }
+                    }
+                    AxisGridLine()
+                        .foregroundStyle(ConstantsGlucoseChartSwiftUI.xAxisGridLineColor)
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(values: [lowLimitInMgDl, highLimitInMgDl]) {
+                if let doubleValue = $0.as(Double.self) {
+                    AxisValueLabel {
+                        Text(doubleValue.mgDlToMmolAndToString(mgDl: isMgDl))
+                            .foregroundStyle(Color(.colorPrimary))
+                            .font(.footnote)
+                            .offset(
+                                x: chartType.yAxisLabelOffsetX(),
+                                y: chartType.yAxisLabelOffsetY()
+                            )
+                    }
+                }
+            }
+            AxisMarks(values: [urgentLowLimitInMgDl, urgentHighLimitInMgDl]) {
+                if let doubleValue = $0.as(Double.self) {
+                    AxisValueLabel {
+                        Text(doubleValue.mgDlToMmolAndToString(mgDl: isMgDl))
+                            .foregroundStyle(Color(.colorSecondary))
+                            .font(.footnote)
+                            .offset(
+                                x: chartType.yAxisLabelOffsetX(),
+                                y: chartType.yAxisLabelOffsetY()
+                            )
+                    }
+                }
+            }
+        }
+        .if({ chartType.frame() }()) { view in
+            view.frame(width: chartWidth, height: chartHeight)
+        }
+        .if({ chartType.aspectRatio().enable }()) { view in
+            view.aspectRatio(
+                chartType.aspectRatio().aspectRatio,
+                contentMode: chartType.aspectRatio().contentMode
+            )
+        }
+        .if({ chartType.padding().enable }()) { view in
+            view.padding(chartType.padding().padding)
+        }
+        .chartYAxis(chartType.yAxisShowLabels())
+        .chartYScale(domain: domain)
+        .background(chartType.backgroundColor())
+        .clipShape(RoundedRectangle(cornerRadius: chartType.cornerRadius()))
+    }
+    
+    // MARK: - Helper Functions
+    
+    /// Afișează BG color based on user's thresholds
     func bgColor(bgValueInMgDl: Double) -> Color {
         if chartType != .widgetSystemSmallStandBy || !showHighContrast {
             if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
@@ -120,217 +293,25 @@ struct GlucoseChartView: View {
             return .white
         }
     }
-    
-    // Example of generating some values for the X axis (not fully used below, but we keep it)
-    func xAxisValues() -> [Date] {
-        let startDate: Date = bgReadingDates.last ?? Date().addingTimeInterval(-hoursToShow * 3600)
-        let endDate: Date = Date()
-        
-        let amountOfFullHours = Int(ceil(endDate.timeIntervalSince(startDate) / 3600))
-        let mappingArray = Array(1...amountOfFullHours)
-        let intervalBetweenAxisValues: Int = chartType.intervalBetweenAxisValues(liveActivityType: liveActivityType)
-        
-        let startDateLower = Date(timeIntervalSinceReferenceDate:
-                                    (startDate.timeIntervalSinceReferenceDate / 3600.0).rounded(.down) * 3600.0)
-        
-        let xAxisValues: [Date] = stride(
-            from: 1,
-            to: mappingArray.count + 1,
-            by: intervalBetweenAxisValues
-        ).map {
-            startDateLower.addingTimeInterval(Double($0)*3600)
-        }
-        
-        return xAxisValues
-    }
-    
-    var body: some View {
-        // Determine Y domain based on smoothed values
-        let domain = (
-            min(
-                (bgReadingValues.min() ?? 40),
-                urgentLowLimitInMgDl
-            ) - 6
-        ) ... (
-            max(
-                (bgReadingValues.max() ?? urgentHighLimitInMgDl),
-                urgentHighLimitInMgDl
-            ) + 6
-        )
-        
-        let yAxisLineSize = chartType.yAxisLineSize()
-        
-        Chart {
-            // urgentLow line
-            if domain.contains(urgentLowLimitInMgDl) {
-                RuleMark(y: .value("", urgentLowLimitInMgDl))
-                    .lineStyle(
-                        StrokeStyle(
-                            lineWidth: yAxisLineSize,
-                            dash: [2 * yAxisLineSize, 6 * yAxisLineSize]
-                        )
-                    )
-                    .foregroundStyle(chartType.yAxisUrgentLowHighLineColor())
-            }
-            
-            // urgentHigh line
-            if domain.contains(urgentHighLimitInMgDl) {
-                RuleMark(y: .value("", urgentHighLimitInMgDl))
-                    .lineStyle(
-                        StrokeStyle(
-                            lineWidth: yAxisLineSize,
-                            dash: [2 * yAxisLineSize, 6 * yAxisLineSize]
-                        )
-                    )
-                    .foregroundStyle(chartType.yAxisUrgentLowHighLineColor())
-            }
-
-            // Low line
-            if domain.contains(lowLimitInMgDl) {
-                RuleMark(y: .value("", lowLimitInMgDl))
-                    .lineStyle(
-                        StrokeStyle(
-                            lineWidth: yAxisLineSize,
-                            dash: [4 * yAxisLineSize, 3 * yAxisLineSize]
-                        )
-                    )
-                    .foregroundStyle(chartType.yAxisLowHighLineColor())
-            }
-            
-            // High line
-            if domain.contains(highLimitInMgDl) {
-                RuleMark(y: .value("", highLimitInMgDl))
-                    .lineStyle(
-                        StrokeStyle(
-                            lineWidth: yAxisLineSize,
-                            dash: [4 * yAxisLineSize, 3 * yAxisLineSize]
-                        )
-                    )
-                    .foregroundStyle(chartType.yAxisLowHighLineColor())
-            }
-            
-            // Phantom point at the start
-            PointMark(
-                x: .value("Time", Date().addingTimeInterval(-hoursToShow * 3600)),
-                y: .value("BG", 100)
-            )
-            .symbol(Circle())
-            .symbolSize(glucoseCircleDiameter)
-            .foregroundStyle(.clear)
-
-            // Show data points
-            ForEach(bgReadingValues.indices, id: \.self) { index in
-                PointMark(
-                    x: .value("Time", bgReadingDates[index]),
-                    y: .value("BG", bgReadingValues[index])
-                )
-                .symbol(Circle())
-                .symbolSize(glucoseCircleDiameter)
-                .foregroundStyle(bgColor(bgValueInMgDl: bgReadingValues[index]))
-            }
-            
-            // Phantom point at the end
-            PointMark(
-                x: .value("Time", Date().addingTimeInterval(5 * 60)),
-                y: .value("BG", 100)
-            )
-            .symbol(Circle())
-            .symbolSize(glucoseCircleDiameter)
-            .foregroundStyle(.clear)
-        }
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .hour, count: chartType.xAxisLabelEveryHours())) {
-                if let value = $0.as(Date.self) {
-                    if chartType.xAxisShowLabels() {
-                        AxisValueLabel {
-                            let shouldHideLabel =
-                                abs(Date().distance(to: value))
-                                    < ConstantsGlucoseChartSwiftUI.xAxisLabelFirstClippingInMinutes
-                                ||
-                                abs(Date().addingTimeInterval(-hoursToShow * 3600).distance(to: value))
-                                    < ConstantsGlucoseChartSwiftUI.xAxisLabelLastClippingInMinutes
-                            
-                            Text(!shouldHideLabel ? value.formatted(.dateTime.hour()) : "")
-                                .foregroundStyle(Color(.colorSecondary))
-                                .font(.footnote)
-                                .offset(
-                                    x: chartType.xAxisLabelOffsetX(),
-                                    y: chartType.xAxisLabelOffsetY()
-                                )
-                        }
-                    }
-                    
-                    AxisGridLine()
-                        .foregroundStyle(ConstantsGlucoseChartSwiftUI.xAxisGridLineColor)
-                }
-            }
-        }
-        .chartYAxis {
-            AxisMarks(values: [lowLimitInMgDl, highLimitInMgDl]) {
-                if let value = $0.as(Double.self) {
-                    AxisValueLabel {
-                        Text(value.mgDlToMmolAndToString(mgDl: isMgDl))
-                            .foregroundStyle(Color(.colorPrimary))
-                            .font(.footnote)
-                            .offset(
-                                x: chartType.yAxisLabelOffsetX(),
-                                y: chartType.yAxisLabelOffsetY()
-                            )
-                    }
-                }
-            }
-            
-            AxisMarks(values: [urgentLowLimitInMgDl, urgentHighLimitInMgDl]) {
-                if let value = $0.as(Double.self) {
-                    AxisValueLabel {
-                        Text(value.mgDlToMmolAndToString(mgDl: isMgDl))
-                            .foregroundStyle(Color(.colorSecondary))
-                            .font(.footnote)
-                            .offset(
-                                x: chartType.yAxisLabelOffsetX(),
-                                y: chartType.yAxisLabelOffsetY()
-                            )
-                    }
-                }
-            }
-        }
-        .if({ return chartType.frame() ? true : false }()) { view in
-            view.frame(width: chartWidth, height: chartHeight)
-        }
-        .if({ return chartType.aspectRatio().enable ? true : false }()) { view in
-            view.aspectRatio(
-                chartType.aspectRatio().aspectRatio,
-                contentMode: chartType.aspectRatio().contentMode
-            )
-        }
-        .if({ return chartType.padding().enable ? true : false }()) { view in
-            view.padding(chartType.padding().padding)
-        }
-        .chartYAxis(chartType.yAxisShowLabels())
-        .chartYScale(domain: domain)
-        .background(chartType.backgroundColor())
-        .clipShape(RoundedRectangle(cornerRadius: chartType.cornerRadius()))
-    }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-//  Helper functions for outliers, interpolation, and smoothing
-// ─────────────────────────────────────────────────────────────────────
+// MARK: - removeOutliersFromPairs
 
-/// Eliminates outliers based on the range [mean - sigma*stdev, mean + sigma*stdev].
 private func removeOutliersFromPairs(
     dates: [Date],
     values: [Double],
-    sigma: Double = 3.0
+    sigma: Double
 ) -> ([Date], [Double]) {
     guard !dates.isEmpty, dates.count == values.count else {
         return ([], [])
     }
     
+    // Calculează media și deviația standard o singură dată
     let mean = values.reduce(0, +) / Double(values.count)
     let squaredDiffs = values.map { pow($0 - mean, 2) }
     let stdev = sqrt(squaredDiffs.reduce(0, +) / Double(values.count))
     
+    // Elimină valorile în afara [mean - sigma*stdev, mean + sigma*stdev]
     let lowerBound = mean - sigma * stdev
     let upperBound = mean + sigma * stdev
     
@@ -344,63 +325,85 @@ private func removeOutliersFromPairs(
             filteredValues.append(val)
         }
     }
-    
     return (filteredDates, filteredValues)
 }
 
-/// Generates data at a fixed interval (e.g. every 5 minutes) and linearly interpolates missing values.
-private func fillMissingDates(
+// MARK: - fillMissingDatesPreservingFinal
+/// Umple la interval fix până la penultimul punct, apoi adaugă ultimele două puncte așa cum sunt
+private func fillMissingDatesPreservingFinal(
     dates: [Date],
     values: [Double],
-    intervalInMinutes: Int = 5
+    intervalInMinutes: Int
 ) -> ([Date], [Double]) {
-    // Sort the data if they're not already sorted
+    guard !dates.isEmpty, dates.count == values.count else {
+        return ([], [])
+    }
+    
     let combined = zip(dates, values).sorted { $0.0 < $1.0 }
     let sortedDates = combined.map { $0.0 }
     let sortedValues = combined.map { $0.1 }
-
-    guard !sortedDates.isEmpty else { return ([], []) }
+    
+    guard sortedDates.count > 1 else {
+        return (sortedDates, sortedValues)
+    }
     
     let startDate = sortedDates.first!
-    let endDate = sortedDates.last!
+    let secondLastDate = sortedDates[sortedDates.count - 2]
+    let lastDate = sortedDates.last!
+    let lastValue = sortedValues.last!
+    
+    let increment = Double(intervalInMinutes * 60)
     
     var generatedDates: [Date] = []
     var generatedValues: [Double] = []
     
     var currentDate = startDate
-    while currentDate <= endDate {
+    
+    // Interpolăm până la penultimul punct
+    while currentDate < secondLastDate {
         generatedDates.append(currentDate)
         
-        if let interpolVal = interpolateValue(
+        if let val = interpolateValue(
             for: currentDate,
             inDates: sortedDates,
             inValues: sortedValues
         ) {
-            generatedValues.append(interpolVal)
+            generatedValues.append(val)
         } else {
-            // fallback to 0 or another value
             generatedValues.append(0)
         }
         
-        currentDate = currentDate.addingTimeInterval(Double(intervalInMinutes * 60))
+        currentDate = currentDate.addingTimeInterval(increment)
     }
+    
+    // Adaugă penultimul punct exact
+    generatedDates.append(secondLastDate)
+    if let idx = sortedDates.firstIndex(of: secondLastDate) {
+        generatedValues.append(sortedValues[idx])
+    } else {
+        generatedValues.append(0)
+    }
+    
+    // Adaugă ultimul punct exact, fără interpolare
+    generatedDates.append(lastDate)
+    generatedValues.append(lastValue)
     
     return (generatedDates, generatedValues)
 }
 
-/// Linear interpolation between two points (Date & Double).
+// MARK: - interpolateValue
+
 private func interpolateValue(
     for targetDate: Date,
     inDates dates: [Date],
     inValues values: [Double]
 ) -> Double? {
-    // index of the last point <= targetDate
     guard let firstIndex = dates.lastIndex(where: { $0 <= targetDate }),
           let secondIndex = dates.firstIndex(where: { $0 >= targetDate }) else {
         return nil
     }
     
-    // If it's exactly a known point
+    // Exact match
     if dates[firstIndex] == targetDate {
         return values[firstIndex]
     }
@@ -408,7 +411,7 @@ private func interpolateValue(
         return values[secondIndex]
     }
     
-    // If it's the same index, there's no space for interpolation
+    // Fără interval
     if firstIndex == secondIndex {
         return values[firstIndex]
     }
@@ -420,36 +423,37 @@ private func interpolateValue(
     
     let total = dateB.timeIntervalSince(dateA)
     let partial = targetDate.timeIntervalSince(dateA)
-    if total == 0 { return valA } // theoretical fallback
     
+    if total == 0.0 {
+        return valA
+    }
     let ratio = partial / total
-    let interpVal = valA + ratio * (valB - valA)
-    return interpVal
+    return valA + ratio * (valB - valA)
 }
 
-/// Smoothing using a moving average with a ±windowSize window.
-/// Example: windowSize=3 => ~7 points (3 before, 1 current, 3 after).
-private func smoothValues(
+// MARK: - smoothValuesSkippingLastExponential
+/// Exponential smoothing simplu, O(n), fără a recalcula ferestre multiple.
+/// Ultimul punct (cel mai nou) rămâne neschimbat.
+private func smoothValuesSkippingLastExponential(
     _ values: [Double],
-    windowSize: Int
+    alpha: Double
 ) -> [Double] {
-    guard !values.isEmpty, windowSize > 0 else { return values }
-    
-    var smoothed: [Double] = Array(repeating: 0, count: values.count)
-    
-    for i in 0..<values.count {
-        let startIndex = max(0, i - windowSize)
-        let endIndex = min(values.count - 1, i + windowSize)
-        
-        var sum = 0.0
-        var count = 0
-        
-        for j in startIndex...endIndex {
-            sum += values[j]
-            count += 1
-        }
-        smoothed[i] = sum / Double(count)
+    guard values.count > 1, alpha > 0, alpha < 1 else {
+        return values
     }
+    
+    var smoothed = Array(repeating: 0.0, count: values.count)
+    
+    // Inițializare cu prima valoare
+    smoothed[0] = values[0]
+    
+    // Netezim până la penultimul index (values.count - 2)
+    for i in 1..<(values.count - 1) {
+        smoothed[i] = alpha * values[i] + (1 - alpha) * smoothed[i - 1]
+    }
+    
+    // Ultimul punct rămâne exact
+    smoothed[values.count - 1] = values.last!
     
     return smoothed
 }

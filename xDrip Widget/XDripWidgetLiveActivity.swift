@@ -210,7 +210,7 @@ struct LockScreenLiveActivityContentView: View {
                 
 
             } else if context.state.liveActivityType == .normal {
-                HStack(spacing: 30) {
+                HStack(spacing: 5) {
                                    VStack(spacing: 0) {
                                        Text("\(context.state.bgValueStringInUserChosenUnit)\(context.state.trendArrow())")
                                            .font(.system(size: 44))
@@ -218,29 +218,27 @@ struct LockScreenLiveActivityContentView: View {
                                            .foregroundStyle(context.state.bgTextColor())
                                            .minimumScaleFactor(0.1)
                                            .lineLimit(1)
-                                       
+                                           .padding(.trailing, 20)
                                        HStack(alignment: .firstTextBaseline, spacing: 4) {
                                            Text(context.state.deltaChangeStringInUserChosenUnit())
                                                .font(.system(size: 20))
                                                .fontWeight(.semibold)
-                                               .foregroundStyle(.colorTertiary)
+                                               .foregroundStyle(Color.white)
                                                .minimumScaleFactor(0.2)
                                                .lineLimit(1)
-                                           
                                            Text(context.state.bgUnitString)
                                                .font(.system(size: 15))
                                                .foregroundStyle(.colorTertiary)
                                                .minimumScaleFactor(0.2)
                                                .lineLimit(1)
-                                           
-                                           Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
+                                           Text(context.state.bgReadingDate ?? Date(), style: .relative)
                                                .foregroundStyle(.colorTertiary)
                                                .opacity(1)
                                                .lineLimit(1)
                                                .font(.system(size: 15))
                                        }
+                                       .padding(.leading, 15)
                                    }
-                       
                                    ZStack {
                                        GlucoseChartView(
                                            glucoseChartType: .liveActivity,
@@ -252,35 +250,20 @@ struct LockScreenLiveActivityContentView: View {
                                            highLimitInMgDl: context.state.highLimitInMgDl,
                                            urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
                                            liveActivityType: .normal,
-                                           hoursToShowScalingHours: nil,
+                                           hoursToShowScalingHours: 5,
                                            glucoseCircleDiameterScalingHours: nil,
                                            overrideChartHeight: nil,
                                            overrideChartWidth: nil,
                                            highContrast: nil
                                        )
-                                 
-                                       if context.state.warnUserToOpenApp {
-                                           VStack(alignment: .center) {
-                                               Spacer()
-                                               Text("Open \(ConstantsHomeView.applicationName)")
-                                                   .font(.footnote)
-                                                   .bold()
-                                                   .foregroundStyle(.black)
-                                                   .multilineTextAlignment(.center)
-                                                   .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
-                                                   .background(.cyan)
-                                                   .opacity(0.9)
-                                                   .cornerRadius(10)
-                                               Spacer()
-                                           }
-                                           .padding(8)
-                                       }
                                    }
+                                   .padding(.trailing, 20)
                                }
                                
                                .activityBackgroundTint(.black)
                                .padding(.top, 14)
                                .padding(.bottom, 12)
+                               .padding([.leading, .trailing], 12)
             } else {
                 ZStack {
                     VStack(spacing: 0) {
@@ -324,7 +307,7 @@ struct LockScreenLiveActivityContentView: View {
                             urgentHighLimitInMgDl: context.state.urgentHighLimitInMgDl,
                             liveActivityType: .large,
                             hoursToShowScalingHours: nil,
-                            glucoseCircleDiameterScalingHours: 3,
+                            glucoseCircleDiameterScalingHours: nil,
                             overrideChartHeight: nil,
                             overrideChartWidth: nil,
                             highContrast: nil
