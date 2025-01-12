@@ -17,7 +17,7 @@
 //  Mai jos, la final, a fost înlocuită funcția "smoothValuesSkippingLast" cu o formă
 //  de "exponential smoothing" (o singură trecere prin date). Ultimul punct rămâne
 //  neschimbat (nu se netezește).
-//
+// 
 
 import Charts
 import SwiftUI
