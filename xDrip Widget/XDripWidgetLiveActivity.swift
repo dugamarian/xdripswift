@@ -76,7 +76,7 @@ struct XDripWidgetLiveActivity: Widget {
             .widgetURL(URL(string: "xdripswift"))
             .keylineTint(context.state.bgTextColor())
         }
-        .extraFamilies()  
+        .extraFamilies()
     }
 }
 
@@ -455,7 +455,7 @@ struct SmartStackLiveActivityContentView: View {
 
 @available(iOS 18.0, *)
 struct NewerLockScreenLiveActivityContentView: View {
-    @Environment(\.activityFamily) var activityFamily 
+    @Environment(\.activityFamily) var activityFamily
     @State var context: ActivityViewContext<XDripWidgetAttributes>
     
     var body: some View {

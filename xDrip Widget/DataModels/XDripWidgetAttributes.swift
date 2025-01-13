@@ -89,7 +89,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
             self.urgentLowLimitInMgDl = urgentLowLimitInMgDl
             self.lowLimitInMgDl = lowLimitInMgDl
             self.highLimitInMgDl = highLimitInMgDl
-            self.urgentHighLimitInMgDl = urgentHighLimitInMgDl            
+            self.urgentHighLimitInMgDl = urgentHighLimitInMgDl
             self.liveActivityType = liveActivityType
             self.dataSourceDescription = dataSourceDescription ?? ""
             self.liveActivityForWatchOS = liveActivityForWatchOS
@@ -223,5 +223,4 @@ struct XDripWidgetAttributes: ActivityAttributes {
         }
     }
 }
-
 
