@@ -9,115 +9,203 @@
 import UIKit
 
 class LandscapeValueViewController: UIViewController {
-
-    // MARK: - Properties - Outlets for labels
-
-    /// the main stackview, defined here to allow programmatic layout
+    
+    // MARK: - IBOutlets
+    
     @IBOutlet weak var allViewsStackView: UIStackView!
-    
-    /// stackview that has the minutes and diff labels,  defined here to allow programmatic layout
     @IBOutlet weak var minutesAndDiffLabelStackView: UIStackView!
-    
-    /// stackview with just the minutes and minutes ago  labels,  defined here to allow programmatic layout
     @IBOutlet weak var minutesLabelStackView: UIStackView!
-    
-    /// outlet for label that shows how many minutes ago and so on
     @IBOutlet weak var minutesLabelOutlet: UILabel!
-    /// outlet for label that shows the text "minuges ago.."
     @IBOutlet weak var minutesAgoLabelOutlet: UILabel!
-    
-    /// outlet for label that shows difference with previous reading
     @IBOutlet weak var diffLabelOutlet: UILabel!
-    /// outlet for label that shows unit
     @IBOutlet weak var diffLabelUnitOutlet: UILabel!
-    
-    /// outlet for label that shows the current reading
     @IBOutlet weak var valueLabelOutlet: UILabel!
     
+    // MARK: - Private UI Elements
+    
+    private let clockLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+       
+        label.text = "--:--"
+        label.textColor = .red
+       
+        if let customFont = UIFont(name: "HelveticaNeue-Bold", size: 80) {
+            label.font = customFont
+        } else {
 
-    // MARK: - overriden functions
+            label.font = UIFont.systemFont(ofSize: 80, weight: .bold)
+        }
+        
+        label.textAlignment = .center
+       
+        label.layer.borderColor = UIColor.red.cgColor
+        label.layer.borderWidth = 2
+        label.layer.cornerRadius = 8
+        label.layer.masksToBounds = true
+        
+        return label
+    }()
+    
+    private let valueAndClockStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.alignment = .center
+        stackView.distribution = .fill
+        stackView.spacing = 16
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+    
+    private var timer: Timer?
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
-        
         super.viewDidLoad()
         
-        // set height of stackview with the minutes and diff labels to 20% of toal screen height, the remaining 80% is used to show the value and trend
-        //   and width of stackview with just the minutes, 60% of total width?
-        minutesAndDiffLabelStackView.translatesAutoresizingMaskIntoConstraints = false
-        minutesAndDiffLabelStackView.heightAnchor.constraint(equalTo: allViewsStackView.heightAnchor, multiplier: 0.2).isActive = true
-        minutesLabelStackView.widthAnchor.constraint(equalTo: minutesAndDiffLabelStackView.widthAnchor, multiplier: 0.6).isActive = true
+        self.modalPresentationStyle = .fullScreen
+
+        setupStackViewConstraints()
+        configureLabelsAutoShrink()
+        setAllLabelsTextColor(to: .red)
+
+        valueLabelOutlet.font = UIFont.systemFont(ofSize: 124, weight: .bold)
         
+        setupValueAndClockStackView()
+
+        self.modalPresentationStyle = .fullScreen
     }
     
-    override func viewDidLayoutSubviews() {
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         
-        super.viewDidLayoutSubviews()
-
-        // adjust font of first label, maximize to fit the height of the label
-        LandscapeValueViewController.adjustFontSizeToFitHeight(for: minutesLabelOutlet)
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
         
-        // give the other labels in the top stackview the same height
-        minutesAgoLabelOutlet.font = minutesLabelOutlet.font
-        diffLabelOutlet.font = minutesLabelOutlet.font
-        diffLabelUnitOutlet.font = minutesLabelOutlet.font
-        
-        // adjust also font size for value label
-        LandscapeValueViewController.adjustFontSizeToFitHeight(for: valueLabelOutlet)
-        
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+    
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+        setNeedsStatusBarAppearanceUpdate()
+    }
+    
+    // MARK: - Status Bar & Home Indicator
+  
+    override var prefersStatusBarHidden: Bool {
+        return true
     }
 
+    override var prefersHomeIndicatorAutoHidden: Bool {
+        return true
+    }
     
-    // MARK: - public functions
+    // MARK: - Public Functions
     
-    /// updates the labels colors and texts
-    public func updateLabels(minutesLabelTextColor:UIColor, minutesLabelText: String?, minuteslabelAgoTextColor: UIColor, minutesLabelAgoText: String?, diffLabelTextColor: UIColor, diffLabelText: String?, diffLabelUnitTextColor: UIColor, diffLabelUnitText: String?, valueLabelTextColor: UIColor, valueLabelText: String?, valueLabelAttributedText: NSAttributedString?) {
-        
-        minutesLabelOutlet.textColor = minutesLabelTextColor
+    public func updateLabels(
+        minutesLabelText: String? = nil,
+        minutesLabelAgoText: String? = nil,
+        diffLabelText: String? = nil,
+        diffLabelUnitText: String? = nil,
+        valueLabelText: String? = nil,
+        valueLabelAttributedText: NSAttributedString? = nil
+    ) {
         minutesLabelOutlet.text = minutesLabelText
-        minutesAgoLabelOutlet.textColor = minuteslabelAgoTextColor
         minutesAgoLabelOutlet.text = " " + (minutesLabelAgoText ?? "")
-        diffLabelOutlet.textColor = diffLabelTextColor
         diffLabelOutlet.text = diffLabelText
-        diffLabelUnitOutlet.textColor = diffLabelUnitTextColor
         diffLabelUnitOutlet.text = " " + (diffLabelUnitText ?? "")
-        valueLabelOutlet.textColor = valueLabelTextColor
         valueLabelOutlet.text = valueLabelText
         valueLabelOutlet.attributedText = valueLabelAttributedText
-        
-        // adjust size for value label, because the length of the text may have changed, eg when going from a value below 100 mg/dl to a value above 100 mg/dl
-        LandscapeValueViewController.adjustFontSizeToFitHeight(for: valueLabelOutlet)
-        
+ 
+        setAllLabelsTextColor(to: .red)
     }
-
-    // MARK: - private functions
     
-    /// increases the fontsize make sure it still fits in the label height
-    private static func adjustFontSizeToFitHeight(for label: UILabel) {
-        guard let text = label.text, !text.isEmpty else { return }
+    // MARK: - Private Functions
+    private func configureLabelsAutoShrink() {
 
-        let maxFontSize: CGFloat = 500  // Maximum font size to try
-        let minFontSize: CGFloat = 5    // Minimum font size for readability
-        let labelSize = label.frame.size
+        let baseFontSize: CGFloat = 30
 
-        for fontSize in stride(from: maxFontSize, through: minFontSize, by: -1) {
-            // Create a font with the current size
-            let font = UIFont.systemFont(ofSize: fontSize)
-            
-            // Calculate the bounding box for the text with this font
-            let textAttributes: [NSAttributedString.Key: Any] = [.font: font]
-            let boundingBox = (text as NSString).boundingRect(
-                with: CGSize(width: labelSize.width, height: .greatestFiniteMagnitude),
-                options: .usesLineFragmentOrigin,
-                attributes: textAttributes,
-                context: nil
-            )
+        let labels = [
+            minutesLabelOutlet,
+            minutesAgoLabelOutlet,
+            diffLabelOutlet,
+            diffLabelUnitOutlet,
+            valueLabelOutlet
+        ]
 
-            // Check if the bounding box fits within the label's dimensions
-            if boundingBox.height <= labelSize.height && boundingBox.width <= labelSize.width {
-                label.font = font  // Set the font
-                break
-            }
+        for label in labels {
+            label?.font = UIFont.systemFont(ofSize: baseFontSize, weight: .bold)
+
+            label?.numberOfLines = 1
+            label?.adjustsFontSizeToFitWidth = true
+            label?.minimumScaleFactor = 0.8
+            label?.lineBreakMode = .byClipping
         }
+
+        clockLabel.numberOfLines = 1
+        clockLabel.adjustsFontSizeToFitWidth = true
+        clockLabel.minimumScaleFactor = 0.8
+        clockLabel.lineBreakMode = .byClipping
     }
 
+    private func setupStackViewConstraints() {
+        minutesAndDiffLabelStackView.translatesAutoresizingMaskIntoConstraints = false
+        minutesLabelStackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        minutesAndDiffLabelStackView.heightAnchor.constraint(
+            equalTo: allViewsStackView.heightAnchor,
+            multiplier: 0.2
+        ).isActive = true
+        
+        minutesLabelStackView.widthAnchor.constraint(
+            equalTo: minutesAndDiffLabelStackView.widthAnchor,
+            multiplier: 0.6
+        ).isActive = true
+    }
+  
+    private func setAllLabelsTextColor(to color: UIColor) {
+        minutesLabelOutlet.textColor = color
+        minutesAgoLabelOutlet.textColor = color
+        diffLabelOutlet.textColor = color
+        diffLabelUnitOutlet.textColor = color
+        valueLabelOutlet.textColor = color
+        clockLabel.textColor = color
+    }
+
+    private func setupValueAndClockStackView() {
+        valueAndClockStackView.addArrangedSubview(valueLabelOutlet)
+        valueAndClockStackView.addArrangedSubview(clockLabel)
+        allViewsStackView.addArrangedSubview(valueAndClockStackView)
+        
+        NSLayoutConstraint.activate([
+            valueAndClockStackView.heightAnchor.constraint(equalToConstant: 60),
+            valueAndClockStackView.leadingAnchor.constraint(equalTo: allViewsStackView.leadingAnchor, constant: 16),
+            valueAndClockStackView.trailingAnchor.constraint(equalTo: allViewsStackView.trailingAnchor, constant: -16)
+        ])
+        
+        startClock()
+    }
+    
+    private func startClock() {
+        updateClock()
+        timer = Timer.scheduledTimer(timeInterval: 1.0,
+                                     target: self,
+                                     selector: #selector(updateClock),
+                                     userInfo: nil,
+                                     repeats: true)
+    }
+
+    @objc private func updateClock() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        clockLabel.text = formatter.string(from: Date())
+    }
+
+    deinit {
+        timer?.invalidate()
+    }
+ 
 }

@@ -270,7 +270,10 @@ final class RootViewController: UIViewController, ObservableObject {
             }
         }
     }
-    
+    override var prefersHomeIndicatorAutoHidden: Bool {
+           return true
+       }
+
     
     // ******************************************
     // ***** Main Chart Gesture Recognizers *****
@@ -655,7 +658,7 @@ final class RootViewController: UIViewController, ObservableObject {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
         // remove titles from tabbar items
         self.tabBarController?.cleanTitles()
         
@@ -2331,7 +2334,14 @@ final class RootViewController: UIViewController, ObservableObject {
         // piece of code that is used at least two times
         // it calls landscapeValueViewController.updateLabels
         let updateLabelsInLandscapeValueViewController = { [self] in
-            landscapeValueViewController?.updateLabels(minutesLabelTextColor: minutesLabelOutlet.textColor, minutesLabelText: minutesLabelOutlet.text, minuteslabelAgoTextColor: minutesAgoLabelOutlet.textColor, minutesLabelAgoText: minutesAgoLabelOutlet.text, diffLabelTextColor: diffLabelOutlet.textColor, diffLabelText: diffLabelOutlet.text, diffLabelUnitTextColor: diffLabelUnitOutlet.textColor, diffLabelUnitText: diffLabelUnitOutlet.text, valueLabelTextColor: valueLabelOutlet.textColor, valueLabelText: valueLabelOutlet.text, valueLabelAttributedText: valueLabelOutlet.attributedText)
+            landscapeValueViewController?.updateLabels(
+                minutesLabelText: minutesLabelOutlet.text,
+                     minutesLabelAgoText: minutesAgoLabelOutlet.text,
+                diffLabelText: diffLabelOutlet.text,
+                diffLabelUnitText: diffLabelUnitOutlet.text,
+                valueLabelText: valueLabelOutlet.text,
+                valueLabelAttributedText: valueLabelOutlet.attributedText
+            )
         }
         
         // if in follower mode, show the patient name if one has been entered

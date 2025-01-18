@@ -223,6 +223,7 @@
 		6D17F5D42D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
 		6D17F5D52D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
 		6D17F5D62D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */; };
+		6DC1B2CD2D39A215007F2C7F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC1B2CC2D39A200007F2C7F /* SceneDelegate.swift */; };
 		6DC3E9192CCC17F100991C1C /* CalendarIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC3E9182CCC17E700991C1C /* CalendarIntent.swift */; };
 		CE1B2FE025D0264B00F642F5 /* LaunchScreen.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE1B2FD125D0264900F642F5 /* LaunchScreen.strings */; };
 		CE1B2FE125D0264B00F642F5 /* Main.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE1B2FD425D0264900F642F5 /* Main.strings */; };
@@ -1059,6 +1060,7 @@
 		6D13835A2CC4F1BF007E566F /* XdripSmartStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XdripSmartStack.swift; sourceTree = "<group>"; };
 		6D13835C2CC4F871007E566F /* LAintent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LAintent.swift; sourceTree = "<group>"; };
 		6D17F5D12D2D95FB00ABC777 /* LiveActivityTypeForWatchOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityTypeForWatchOS.swift; sourceTree = "<group>"; };
+		6DC1B2CC2D39A200007F2C7F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		6DC3E9182CCC17E700991C1C /* CalendarIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarIntent.swift; sourceTree = "<group>"; };
 		CE1B2FC825D0261500F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Alerts.strings; sourceTree = "<group>"; };
 		CE1B2FCD25D0264900F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/AlertTypesSettingsView.strings; sourceTree = "<group>"; };
@@ -2329,6 +2331,7 @@
 				F8AC425F21ADEBD60078C348 /* RootViewController.swift */,
 				F8E6C78B24CDDB83007C1199 /* SnoozeViewController.swift */,
 				F8CCBB4E2D1B6DF900F14867 /* LandscapeValueViewController.swift */,
+				6DC1B2CC2D39A200007F2C7F /* SceneDelegate.swift */,
 			);
 			path = "Root View Controller";
 			sourceTree = "<group>";
@@ -4410,6 +4413,7 @@
 				F8F9721923A5915900C3F17D /* CGMGNSEntryTransmitter.swift in Sources */,
 				F8B3A84A227F090E004BA588 /* SettingsViewNotificationsSettingsViewModel.swift in Sources */,
 				F83098FE23AD3F84005741DF /* UITabBarController.swift in Sources */,
+				6DC1B2CD2D39A215007F2C7F /* SceneDelegate.swift in Sources */,
 				F816E11A243923B2009EE65B /* Droplet+CoreDataClass.swift in Sources */,
 				F80D916D24F82A17006840B5 /* CGMLibre2TransmitterDelegate.swift in Sources */,
 				F8B955EB2591355200C06016 /* CGMLibre2Transmitter+TestData.swift in Sources */,
