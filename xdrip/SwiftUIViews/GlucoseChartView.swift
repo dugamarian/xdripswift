@@ -4,20 +4,6 @@
 //
 //  Created by Paul Plant on 13/01/2024.
 //  Copyright © 2023 Johan Degraeve. All rights reserved.
-//
-//  Observație: Dacă ultimul punct din "liveActivityLarge" nu se ridică suficient,
-//  de obicei sunt două cauze posibile:
-//   1) Domeniul Y (min...maxValue) se calculează prea strâns și ultimul punct este "tăiat".
-//   2) Ultimul punct suferă de smoothing, interpolare sau "snap" la un timp fix.
-//
-//  În plus, dorim să optimizăm codul pentru a reduce consumul energetic, în special
-//  în funcțiile de netezire. O abordare cu "Exponential Smoothing" (cu un alpha fix)
-//  poate reduce semnificativ calculele, rămânând totodată liniară O(n).
-//
-//  Mai jos, la final, a fost înlocuită funcția "smoothValuesSkippingLast" cu o formă
-//  de "exponential smoothing" (o singură trecere prin date). Ultimul punct rămâne
-//  neschimbat (nu se netezește).
-// 
 
 import Charts
 import SwiftUI
